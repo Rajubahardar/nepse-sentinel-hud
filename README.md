@@ -170,3 +170,7 @@ Run any of these from the Apps Script editor toolbar and inspect the execution l
 - Public NEPSE JSON endpoints can change structure or rate-limit; when unavailable, `DailyNepseSync.js` falls back to the `Watchlist` sheet or built-in sample tickers until `NEPSE_FEED_URL` is configured.
 - The `+19D` future signal forecast curve is a deterministic projection derived from current `LTP`, `Stop Loss`, `Target`, and `PGA-BB` parameters rather than an intraday order-book feed.
 - Embedded live charts rely on NepseAlpha iframe availability in the user's browser session.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
