@@ -14,6 +14,9 @@ function includeBrainCameraFocus() {
 function includeFridayHindiVoice() {
   return HtmlService.createHtmlOutputFromFile('FridayHindiVoice').getContent();
 }
+function includeVoiceCommandRouter() {
+  return HtmlService.createHtmlOutputFromFile('VoiceCommandRouter').getContent();
+}
 /**
  * F.R.I.D.A.Y. Real-Time Neural Telemetry, Company Briefing & Animated Code Trace
  */
@@ -285,4 +288,188 @@ function getJarvisBrainTelemetry() {
     ],
     brainDiagnosis: brainDiagnosis
   };
+}
+/**
+ * Checks whether a Studio Human AI TTS key is configured in Script Properties
+ */
+function getHumanVoiceConfig() {
+  var props = PropertiesService.getScriptProperties();
+  var key = props.getProperty('HUMAN_TTS_API_KEY');
+  var provider = (props.getProperty('HUMAN_TTS_PROVIDER') || 'openai').toLowerCase();
+  return {
+    enabled: Boolean(key && key.trim().length > 10),
+    provider: provider
+  };
+}
+
+/**
+ * Generates studio-grade human speech MP3 (OpenAI, ElevenLabs, or Google Cloud Neural2)
+ */
+function synthesizeHumanVoice(text, personaId) {
+  var props = PropertiesService.getScriptProperties();
+  var apiKey = (props.getProperty('HUMAN_TTS_API_KEY') || '').trim();
+  var provider = (props.getProperty('HUMAN_TTS_PROVIDER') || 'openai').toLowerCase().trim();
+  var customVoice = (props.getProperty('HUMAN_TTS_VOICE_ID') || '').trim();
+
+  if (!apiKey || !text) return null;
+
+  try {
+    if (provider === 'openai') {
+      var voiceName = customVoice || (personaId === 'aria_natural' ? 'nova' : 'shimmer');
+      var resp = UrlFetchApp.fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { Authorization: 'Bearer ' + apiKey },
+        payload: JSON.stringify({
+          model: 'tts-1-hd',
+          voice: voiceName,
+          input: text,
+          speed: 0.98
+        }),
+        muteHttpExceptions: true
+      });
+      if (resp.getResponseCode() === 200) {
+        return {
+          mimeType: 'audio/mp3',
+          audioBase64: Utilities.base64Encode(resp.getBlob().getBytes())
+        };
+      }
+    } else if (provider === 'elevenlabs') {
+      var elVoiceId = customVoice || 'EXAVITQu4vr4xnSDxMaL'; // Sarah (warm, expressive female)
+      var elResp = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/text-to-speech/' + elVoiceId, {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'xi-api-key': apiKey },
+        payload: JSON.stringify({
+          text: text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: { stability: 0.45, similarity_boost: 0.80, style: 0.35 }
+        }),
+        muteHttpExceptions: true
+      });
+      if (elResp.getResponseCode() === 200) {
+        return {
+          mimeType: 'audio/mp3',
+          audioBase64: Utilities.base64Encode(elResp.getBlob().getBytes())
+        };
+      }
+    } else if (provider === 'google') {
+      var isHindi = personaId === 'swara_natural';
+      var gVoice = customVoice || (isHindi ? 'hi-IN-Neural2-A' : 'en-IN-Neural2-A');
+      var gLang = isHindi ? 'hi-IN' : 'en-IN';
+      var gResp = UrlFetchApp.fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + encodeURIComponent(apiKey), {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({
+          input: { text: text },
+          voice: { languageCode: gLang, name: gVoice },
+          audioConfig: { audioEncoding: 'MP3', speakingRate: 0.97, pitch: 0.5 }
+        }),
+        muteHttpExceptions: true
+      });
+      if (gResp.getResponseCode() === 200) {
+        var parsed = JSON.parse(gResp.getContentText());
+        if (parsed.audioContent) {
+          return { mimeType: 'audio/mp3', audioBase64: parsed.audioContent };
+        }
+      }
+    }
+  } catch (e) {}
+
+  return null;
+}
+/**
+ * Returns whether a Real Human AI Voice API key is configured in Script Properties
+ */
+function getHumanVoiceConfig() {
+  var props = PropertiesService.getScriptProperties();
+  var key = (props.getProperty('HUMAN_TTS_API_KEY') || '').trim();
+  var provider = (props.getProperty('HUMAN_TTS_PROVIDER') || 'elevenlabs').toLowerCase().trim();
+  return {
+    enabled: key.length > 10,
+    provider: provider
+  };
+}
+
+/**
+ * Synthesizes real movie-grade human voice (ElevenLabs Flash v2.5, OpenAI gpt-4o-mini-tts, or Google Chirp 3 HD)
+ */
+function synthesizeHumanVoice(text, personaId) {
+  var props = PropertiesService.getScriptProperties();
+  var apiKey = (props.getProperty('HUMAN_TTS_API_KEY') || '').trim();
+  var provider = (props.getProperty('HUMAN_TTS_PROVIDER') || 'elevenlabs').toLowerCase().trim();
+  var customVoice = (props.getProperty('HUMAN_TTS_VOICE_ID') || '').trim();
+
+  if (!apiKey || !text) return null;
+
+  try {
+    if (provider === 'elevenlabs') {
+      // Default: Rachel / Sarah warm expressive female voice; eleven_flash_v2_5 responds in ~75 ms
+      var voiceId = customVoice || 'EXAVITQu4vr4xnSDxMaL';
+      var elResp = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId + '?output_format=mp3_44100_128', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'xi-api-key': apiKey },
+        payload: JSON.stringify({
+          text: text,
+          model_id: 'eleven_flash_v2_5',
+          voice_settings: {
+            stability: 0.42,
+            similarity_boost: 0.82,
+            style: 0.38,
+            use_speaker_boost: true
+          }
+        }),
+        muteHttpExceptions: true
+      });
+      if (elResp.getResponseCode() === 200) {
+        return {
+          mimeType: 'audio/mp3',
+          audioBase64: Utilities.base64Encode(elResp.getBlob().getBytes())
+        };
+      }
+    } else if (provider === 'openai') {
+      var oaiVoice = customVoice || 'marin';
+      var oaiResp = UrlFetchApp.fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { Authorization: 'Bearer ' + apiKey },
+        payload: JSON.stringify({
+          model: 'gpt-4o-mini-tts',
+          voice: oaiVoice,
+          input: text,
+          instructions: 'Speak like F.R.I.D.A.Y. in Iron Man: a warm, genuine, intelligent female human AI companion with natural breath, calm confidence, and subtle warmth.'
+        }),
+        muteHttpExceptions: true
+      });
+      if (oaiResp.getResponseCode() === 200) {
+        return {
+          mimeType: 'audio/mp3',
+          audioBase64: Utilities.base64Encode(oaiResp.getBlob().getBytes())
+        };
+      }
+    } else if (provider === 'google') {
+      var isHindi = personaId === 'hindi';
+      var gVoice = customVoice || (isHindi ? 'hi-IN-Chirp3-HD-Aoede' : 'en-GB-Chirp3-HD-Aoede');
+      var gLang = isHindi ? 'hi-IN' : 'en-GB';
+      var gResp = UrlFetchApp.fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + encodeURIComponent(apiKey), {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({
+          input: { text: text },
+          voice: { languageCode: gLang, name: gVoice },
+          audioConfig: { audioEncoding: 'MP3', speakingRate: 0.98 }
+        }),
+        muteHttpExceptions: true
+      });
+      if (gResp.getResponseCode() === 200) {
+        var parsed = JSON.parse(gResp.getContentText());
+        if (parsed.audioContent) {
+          return { mimeType: 'audio/mp3', audioBase64: parsed.audioContent };
+        }
+      }
+    }
+  } catch (e) {}
+
+  return null;
 }
