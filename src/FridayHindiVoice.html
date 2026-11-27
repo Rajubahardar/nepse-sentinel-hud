@@ -1,0 +1,291 @@
+<!-- ==================== SWEET & CHARMING EXECUTIVE VOICE ENGINE ==================== -->
+<script>
+(function() {
+  if (window.__fridayHindiVoiceInstalled) return;
+  window.__fridayHindiVoiceInstalled = true;
+
+  var PERSONA_KEY = 'nepse_friday_voice_persona';
+  var currentPersona = localStorage.getItem(PERSONA_KEY) || 'swara_charm';
+
+  var PERSONAS = {
+    swara_charm: {
+      id: 'swara_charm',
+      badge: 'SWARA · CHARM',
+      lang: 'hi-IN',
+      rate: 0.95,
+      pitch: 1.16,
+      priority: [
+        'Microsoft Swara Online (Natural)',
+        'Microsoft Ananya Online (Natural)',
+        'Microsoft Kavya Online (Natural)',
+        'Google हिन्दी',
+        'Google Hindi',
+        'Microsoft Kalpana',
+        'Lekha',
+        'Swara'
+      ],
+      langPrefix: 'hi',
+      excludeRegex: /hemant|madhur|prabhat|ravi|male/i,
+      sampleText: 'नमस्ते राजू डी सर… आपकी मार्केट कमांड और रिस्क कंट्रोल वाकई लाजवाब है। बताइए, आज किस स्टॉक पर नज़र रखें?'
+    },
+    neerja_velvet: {
+      id: 'neerja_velvet',
+      badge: 'NEERJA · VELVET',
+      lang: 'en-IN',
+      rate: 0.96,
+      pitch: 1.12,
+      priority: [
+        'Microsoft Neerja Online (Natural)',
+        'Microsoft Aashi Online (Natural)',
+        'Microsoft Kavya Online (Natural)',
+        'Google UK English Female',
+        'Microsoft Heera',
+        'Neerja',
+        'Veena'
+      ],
+      langPrefix: 'en-in',
+      excludeRegex: /prabhat|ravi|male/i,
+      sampleText: 'Always a pleasure working with you, Raju D. sir… Your risk discipline is looking sharp today. Ready whenever you are.'
+    },
+    friday_wit: {
+      id: 'friday_wit',
+      badge: 'F.R.I.D.A.Y. · WIT',
+      lang: 'en-GB',
+      rate: 0.98,
+      pitch: 1.08,
+      priority: [
+        'Microsoft Aria Online (Natural)',
+        'Microsoft Sonia Online (Natural)',
+        'Microsoft Libby Online (Natural)',
+        'Microsoft Jenny Online (Natural)',
+        'Google UK English Female',
+        'Aria',
+        'Sonia',
+        'Jenny'
+      ],
+      langPrefix: 'en',
+      excludeRegex: /guy|davis|tony|ryan|george|david|mark|male/i,
+      sampleText: 'Systems calibrated and looking good, Raju D. sir… Just like your portfolio discipline. Shall we review the top setups?'
+    }
+  };
+
+  if (!PERSONAS[currentPersona]) currentPersona = 'swara_charm';
+
+  // 1. Pick the best matching neural voice for the active persona
+  function pickPersonaVoice(personaId, preferLocalOnly) {
+    if (!('speechSynthesis' in window)) return null;
+    var voices = window.speechSynthesis.getVoices() || [];
+    if (voices.length === 0) return null;
+
+    var cfg = PERSONAS[personaId] || PERSONAS.swara_charm;
+
+    for (var p = 0; p < cfg.priority.length; p++) {
+      var target = cfg.priority[p].toLowerCase();
+      for (var i = 0; i < voices.length; i++) {
+        if (preferLocalOnly && !voices[i].localService) continue;
+        if (voices[i].name.toLowerCase().indexOf(target) > -1) {
+          return voices[i];
+        }
+      }
+    }
+
+    for (var j = 0; j < voices.length; j++) {
+      if (preferLocalOnly && !voices[j].localService) continue;
+      var lang = (voices[j].lang || '').toLowerCase();
+      var vName = (voices[j].name || '').toLowerCase();
+      if (lang.indexOf(cfg.langPrefix) === 0 && !cfg.excludeRegex.test(vName)) {
+        return voices[j];
+      }
+    }
+
+    return null;
+  }
+
+  function updatePersonaUI() {
+    var cfg = PERSONAS[currentPersona];
+    var btn = document.getElementById('fv-persona-btn');
+    if (btn) {
+      btn.textContent = 'VOICE: ' + cfg.badge;
+    }
+    var subTag = document.getElementById('friday-subtitle-tag');
+    var v = pickPersonaVoice(currentPersona, false);
+    if (subTag && subTag.textContent.indexOf('F.R.I.D.A.Y.') > -1) {
+      var shortName = v ? v.name.replace(/Microsoft | Online \(Natural\)/g, '') : cfg.badge;
+      subTag.textContent = '[F.R.I.D.A.Y. · ' + shortName + ']';
+    }
+  }
+
+  // Inject Persona Switcher button into the existing HUD dock
+  function mountPersonaButton() {
+    var dock = document.getElementById('friday-voice-dock');
+    if (!dock || document.getElementById('fv-persona-btn')) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'fv-persona-btn';
+    btn.className = 'fv-btn';
+    btn.type = 'button';
+    btn.title = 'Switch between Swara (Hindi Charm), Neerja (Velvet Indian English), and Aria/Sonia (F.R.I.D.A.Y. Wit)';
+    btn.style.borderColor = '#f472b6';
+    btn.style.color = '#f9a8d4';
+    btn.textContent = 'VOICE: ' + PERSONAS[currentPersona].badge;
+
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var order = ['swara_charm', 'neerja_velvet', 'friday_wit'];
+      var nextIdx = (order.indexOf(currentPersona) + 1) % order.length;
+      currentPersona = order[nextIdx];
+      localStorage.setItem(PERSONA_KEY, currentPersona);
+      updatePersonaUI();
+
+      // Speak instant audio sample in the newly selected voice
+      var cfg = PERSONAS[currentPersona];
+      var subTag = document.getElementById('friday-subtitle-tag');
+      var subText = document.getElementById('friday-subtitle-text');
+      if (subTag) subTag.textContent = '[' + cfg.badge + ']';
+      if (subText) subText.textContent = cfg.sampleText;
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        var sampleUtter = new SpeechSynthesisUtterance(cfg.sampleText);
+        window.speechSynthesis.speak(sampleUtter);
+      }
+    });
+
+    dock.insertBefore(btn, dock.children[1] || null);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountPersonaButton);
+  } else {
+    mountPersonaButton();
+  }
+
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.getVoices();
+    updatePersonaUI();
+    var prevVoicesChanged = window.speechSynthesis.onvoiceschanged;
+    window.speechSynthesis.onvoiceschanged = function() {
+      if (typeof prevVoicesChanged === 'function') prevVoicesChanged();
+      updatePersonaUI();
+    };
+  }
+
+  // 2. Charming, attentive, yet executive text styling per persona
+  function formatCharmingScript(rawText, personaId) {
+    var text = String(rawText || '').trim();
+    if (!text) return text;
+
+    // English / Indian-English charming polish
+    if (personaId === 'neerja_velvet' || personaId === 'friday_wit') {
+      if (/[\u0900-\u097F]/.test(text)) return text;
+      return text
+        .replace(/Voice systems online, Raju D\. sir\./g, 'Voice systems online, Raju D. sir… Always nice to hear from you.')
+        .replace(/Compiling NEPSE company briefing for you now, Raju D\. sir\./g, 'Pulling up your NEPSE company briefing right away, Raju D. sir…')
+        .replace(/Helmet disengaged, Raju D\. sir\./g, 'Visor disengaged, Raju D. sir… Just you, me, and the neural grid.')
+        .replace(/End-to-end diagnosis complete, Raju D\. sir\./g, 'All checks passed with style, Raju D. sir…');
+    }
+
+    // Swara Hindi/Hinglish charming & respectful tone
+    if (/[\u0900-\u097F]/.test(text)) return text;
+
+    var exactMap = {
+      'Voice systems online, Raju D. sir.': 'नमस्ते राजू डी सर… आपकी आवाज़ सुनकर अच्छा लगा। हिंदी वॉइस सिस्टम अब पूरी तरह तैयार है।',
+      'Compiling NEPSE company briefing for you now, Raju D. sir.': 'जी राजू डी सर… आपके लिए खास NEPSE कंपनी ब्रीफिंग अभी तैयार कर रही हूँ।',
+      'Closing helmet visor and locking onto doGet in Brain View, Raju D. sir.': 'हेलमेट वाइज़र हटा दिया है, राजू डी सर… अब ब्रेन व्यू में doGet पर फोकस कर रहे हैं।',
+      'No companies are currently populated in Setup Matrix, Raju D. sir.': 'राजू डी सर, अभी Setup Matrix में कोई कंपनी उपलब्ध नहीं है।',
+      'No additional secondary companies require immediate action today, Raju D. sir.': 'राजू डी सर, आज किसी अन्य कंपनी पर जल्दबाज़ी करने की ज़रूरत नहीं है… आपका पोर्टफोलियो सुरक्षित है।',
+      'End-to-end diagnosis complete, Raju D. sir. Zero candidates cleared all four gates today, so the brain outputs Watch mode to protect capital.': 'राजू डी सर, पूरा डायग्नोसिस कंप्लीट हो गया है… आज किसी भी स्टॉक ने चारों गेट्स पास नहीं किए, इसलिए आपकी कैपिटल सुरक्षा के लिए सिस्टम Watch मोड में है।'
+    };
+
+    if (exactMap[text]) return exactMap[text];
+
+    return text
+      .replace(/Good morning, Raju D\. sir\./g, 'सुप्रभात राजू डी सर… आज का दिन आपके ट्रेड के लिए शानदार रहे।')
+      .replace(/Good afternoon, Raju D\. sir\./g, 'नमस्ते राजू डी सर… मार्केट अपडेट के साथ हाज़िर हूँ।')
+      .replace(/Good evening, Raju D\. sir\./g, 'शुभ संध्या राजू डी सर… आज के क्लोज़िंग आंकड़े तैयार हैं।')
+      .replace(/Raju D\. sir/g, 'राजू डी सर')
+      .replace(/F\.R.I\.D\.A\.Y\. company briefing ready at ([^.]+) Nepal Time\./g, 'F.R.I.D.A.Y. कंपनी ब्रीफिंग $1 नेपाल टाइम पर तैयार है।')
+      .replace(/I have analyzed (\d+) listed NEPSE companies across ([^.]+) sectors\./g, 'मैंने $2 सेक्टर्स की कुल $1 NEPSE कंपनियों का बारीकी से विश्लेषण किया है।')
+      .replace(/(\d+) companies currently hold active Buy ratings, with (\d+) on Watch at (\d+) percent model accuracy\./g, 'अभी $1 कंपनियों पर सक्रिय Buy रेटिंग है, और $2 कंपनियां Watch लिस्ट में हैं… $3 प्रतिशत मॉडल एक्यूरेसी के साथ।')
+      .replace(/Top ranked company is ([A-Z0-9_-]+)/g, 'आपकी टॉप रैंक कंपनी $1 है')
+      .replace(/in the ([^,]+) sector/g, 'जो $1 सेक्टर से है')
+      .replace(/carrying a ([A-Z]+) signal\./g, 'और इसका सिग्नल $1 है।')
+      .replace(/Last traded price is ([\d.]+) rupees, entry zone ([^,]+), target price ([\d.]+), and stop loss ([\d.]+),/g, 'इसका लास्ट ट्रेडेड प्राइस $1 रुपये, एंट्री ज़ोन $2, टारगेट प्राइस $3, और स्टॉप लॉस $4 है…')
+      .replace(/yielding a Risk-to-Reward ratio of ([\d.]+) with ([\d.]+) percent Half-Kelly position sizing\./g, 'जिसका रिस्क-टू-रिवॉर्ड रेशियो $1 और हाफ-केली पोज़िशन साइज़ $2 प्रतिशत है।')
+      .replace(/Secondary companies on your radar, ([^:]+):/g, '$1, आपके रडार पर अन्य बेहतरीन कंपनियां हैं:')
+      .replace(/Helmet disengaged, ([^.]+)\./g, 'हेलमेट वाइज़र हटा दिया गया है, $1…')
+      .replace(/Locking onto doGet inside Code dot J S\./g, 'अभी Code dot J S के doGet फंक्शन पर फोकस है।')
+      .replace(/Shifting focus to updateDailyNepseSetups in DailyNepseSync\./g, 'अब DailyNepseSync के updateDailyNepseSetups फंक्शन पर चलते हैं।')
+      .replace(/Now highlighting buildKnowledgeGraph inside Graph dot J S\./g, 'अब Graph dot J S के buildKnowledgeGraph फंक्शन को हाईलाइट किया जा रहा है।')
+      .replace(/Next, inspecting evaluateMultiGateSignals\./g, 'अगला चरण है evaluateMultiGateSignals।')
+      .replace(/Moving to getHelmetBacktestJson in HelmetBoot dot J S\./g, 'अब HelmetBoot dot J S के getHelmetBacktestJson फंक्शन की जांच हो रही है।')
+      .replace(/End-to-end diagnosis complete, ([^.]+)\./g, 'पूरा डायग्नोसिस कंप्लीट हो गया है, $1…')
+      .replace(/Isolating the final selected output node: ([A-Z0-9_-]+) at ([\d.]+) rupees, with target ([\d.]+), stop loss ([\d.]+), and ([\d.]+) percent Half-Kelly allocation\./g, 'फाइनल विनिंग नोड $1 को लॉक कर दिया गया है… जिसका प्राइस $2 रुपये, टारगेट $3, स्टॉप लॉस $4, और हाफ-केली एलोकेशन $5 प्रतिशत है।')
+      .replace(/The winning node and its execution trace remain locked on your screen\./g, 'यह नोड और इसका लाइव कोड ट्रेस आपकी स्क्रीन पर लॉक है।');
+  }
+
+  // 3. Intercept speechSynthesis.speak and apply active persona voice + prosody
+  if ('speechSynthesis' in window && typeof window.speechSynthesis.speak === 'function') {
+    var nativeSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+
+    window.speechSynthesis.speak = function(utter) {
+      if (utter && !utter.__fridayPersonaApplied) {
+        utter.__fridayPersonaApplied = true;
+        var cfg = PERSONAS[currentPersona] || PERSONAS.swara_charm;
+
+        utter.text = formatCharmingScript(utter.text, currentPersona);
+        utter.lang = cfg.lang;
+
+        var chosenVoice = pickPersonaVoice(currentPersona, false) || pickPersonaVoice(currentPersona, true);
+        if (chosenVoice) {
+          utter.voice = chosenVoice;
+        }
+
+        utter.rate = cfg.rate;
+        utter.pitch = cfg.pitch;
+        utter.volume = 1.0;
+      }
+      return nativeSpeak(utter);
+    };
+  }
+
+  // 4. Stock node click readout adapted to active persona
+  window.jarvisSpeakTicker = function(ticker, signal, ltp, stopLoss, target, rr) {
+    if (localStorage.getItem('nepse_friday_voice_enabled') === 'false') return;
+    if (!('speechSynthesis' in window)) return;
+
+    window.speechSynthesis.cancel();
+    var msg = currentPersona === 'swara_charm'
+      ? ('जी राजू डी सर… ' + ticker + ' पर अच्छी नज़र है आपकी। इसकी रेटिंग ' + (signal || 'WATCH') +
+         ' है, प्राइस ' + ltp + ' रुपये, टारगेट ' + target + ', और स्टॉप लॉस ' + stopLoss +
+         (rr ? '… रिस्क-रिवॉर्ड रेशियो ' + rr + ' के साथ।' : ' है।'))
+      : ('Great eye, Raju D. sir… ' + ticker + ' is locked in with a ' + (signal || 'WATCH') +
+         ' rating at ' + ltp + ' rupees. Target ' + target + ', stop loss ' + stopLoss +
+         (rr ? ', with a ' + rr + ' Risk-to-Reward ratio.' : '.'));
+
+    var subTag = document.getElementById('friday-subtitle-tag');
+    var subText = document.getElementById('friday-subtitle-text');
+    if (subTag) subTag.textContent = '[COMPANY NODE · ' + ticker + ']';
+    if (subText) subText.textContent = msg;
+
+    var utter = new SpeechSynthesisUtterance(msg);
+    window.speechSynthesis.speak(utter);
+  };
+
+  window.FridayHindiVoice = {
+    setPersona: function(id) {
+      if (PERSONAS[id]) {
+        currentPersona = id;
+        localStorage.setItem(PERSONA_KEY, id);
+        updatePersonaUI();
+      }
+    },
+    listAvailableVoices: function() {
+      return (window.speechSynthesis.getVoices() || []).map(function(v) {
+        return { name: v.name, lang: v.lang, online: !v.localService };
+      });
+    }
+  };
+})();
+</script>
+<!-- ==================== END SWEET & CHARMING EXECUTIVE VOICE ENGINE ==================== -->

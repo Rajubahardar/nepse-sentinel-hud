@@ -11,6 +11,9 @@ function includeFridayVoice() {
 function includeBrainCameraFocus() {
   return HtmlService.createHtmlOutputFromFile('BrainCameraFocus').getContent();
 }
+function includeFridayHindiVoice() {
+  return HtmlService.createHtmlOutputFromFile('FridayHindiVoice').getContent();
+}
 /**
  * F.R.I.D.A.Y. Real-Time Neural Telemetry, Company Briefing & Animated Code Trace
  */
