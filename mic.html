@@ -1,0 +1,128 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>J.A.R.V.I.S. Voice Relay</title>
+  <style>
+    body {
+      margin: 0;
+      background: #070e18;
+      color: #ffe4b5;
+      font-family: 'Consolas', monospace;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      border: 2px solid #ff8c00;
+      box-sizing: border-box;
+      padding: 14px;
+      text-align: center;
+    }
+    .title {
+      color: #ffb340;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+    }
+    #status {
+      color: #00f5d4;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    #transcript {
+      color: #ffffff;
+      font-size: 13px;
+      min-height: 20px;
+      margin-bottom: 12px;
+    }
+    button {
+      background: rgba(255, 140, 0, 0.18);
+      border: 1px solid #ffb340;
+      color: #ffe4b5;
+      padding: 6px 14px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    button:hover {
+      background: rgba(255, 140, 0, 0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="title">J.A.R.V.I.S. MIC RELAY · ACTIVE</div>
+  <div id="status">Requesting microphone…</div>
+  <div id="transcript">Say "Open chart", "Show backtesting", or "Top leads today"</div>
+  <button id="restartBtn" type="button">Restart Mic</button>
+
+  <script>
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const statusEl = document.getElementById('status');
+    const transcriptEl = document.getElementById('transcript');
+    let rec = null;
+
+    function sendToHud(payload) {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, '*');
+      }
+    }
+
+    function startRelay() {
+      if (!SpeechRec) {
+        statusEl.textContent = 'SpeechRecognition unsupported in this browser.';
+        return;
+      }
+      if (rec) {
+        try { rec.stop(); } catch (e) {}
+      }
+
+      rec = new SpeechRec();
+      rec.lang = 'en-IN';
+      rec.continuous = true;
+      rec.interimResults = true;
+
+      rec.onstart = () => {
+        statusEl.style.color = '#f43f5e';
+        statusEl.textContent = '● LISTENING (KEEP THIS MINI WINDOW OPEN)';
+        sendToHud({ type: 'JARVIS_VOICE_STATE', listening: true });
+      };
+
+      rec.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const text = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            const clean = text.trim();
+            transcriptEl.textContent = 'SENT: "' + clean + '"';
+            sendToHud({ type: 'JARVIS_VOICE_CMD', transcript: clean });
+          } else {
+            interim += text;
+          }
+        }
+        if (interim) {
+          transcriptEl.textContent = 'HEARD: "' + interim.trim() + '"';
+          sendToHud({ type: 'JARVIS_VOICE_INTERIM', transcript: interim.trim() });
+        }
+      };
+
+      rec.onerror = (e) => {
+        statusEl.style.color = '#ffb340';
+        statusEl.textContent = 'Mic error: ' + e.error + ' — click Allow in address bar';
+      };
+
+      rec.onend = () => {
+        sendToHud({ type: 'JARVIS_VOICE_STATE', listening: false });
+        // Auto-restart continuous listening while popup stays open
+        setTimeout(() => {
+          try { rec.start(); } catch (e) {}
+        }, 250);
+      };
+
+      try { rec.start(); } catch (e) {}
+    }
+
+    document.getElementById('restartBtn').addEventListener('click', startRelay);
+    startRelay();
+  </script>
+</body>
+</html>
