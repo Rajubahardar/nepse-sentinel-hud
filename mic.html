@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>J.A.R.V.I.S. Voice Relay</title>
+  <title>J.A.R.V.I.S. Noise-Filtered Voice Relay</title>
   <style>
     body {
       margin: 0;
@@ -14,115 +14,313 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      border: 2px solid #ff8c00;
+      border: 2px solid #00f5d4;
       box-sizing: border-box;
-      padding: 14px;
+      padding: 12px 16px;
       text-align: center;
+      user-select: none;
     }
-    .title {
+    .header {
       color: #ffb340;
-      font-size: 13px;
-      letter-spacing: 1.5px;
-      margin-bottom: 8px;
-    }
-    #status {
-      color: #00f5d4;
       font-size: 12px;
-      margin-bottom: 10px;
+      letter-spacing: 1.5px;
+      margin-bottom: 6px;
+    }
+    #modeBadge {
+      font-size: 12px;
+      font-weight: bold;
+      padding: 4px 12px;
+      border-radius: 3px;
+      margin-bottom: 8px;
+      background: rgba(0, 245, 212, 0.14);
+      border: 1px solid #00f5d4;
+      color: #00f5d4;
+    }
+    #modeBadge.active {
+      background: rgba(244, 63, 94, 0.22);
+      border-color: #f43f5e;
+      color: #ffe4e6;
     }
     #transcript {
-      color: #ffffff;
-      font-size: 13px;
-      min-height: 20px;
-      margin-bottom: 12px;
+      color: #e0f2fe;
+      font-size: 12px;
+      min-height: 18px;
+      margin-bottom: 10px;
+      max-width: 95%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
     }
     button {
-      background: rgba(255, 140, 0, 0.18);
-      border: 1px solid #ffb340;
-      color: #ffe4b5;
-      padding: 6px 14px;
+      background: rgba(0, 245, 212, 0.14);
+      border: 1px solid #00f5d4;
+      color: #e0f2fe;
+      padding: 5px 12px;
       font-family: inherit;
+      font-size: 11px;
       cursor: pointer;
     }
     button:hover {
-      background: rgba(255, 140, 0, 0.35);
+      background: rgba(0, 245, 212, 0.3);
+    }
+    #closeWinBtn {
+      border-color: #f43f5e;
+      color: #fda4af;
+      background: rgba(244, 63, 94, 0.14);
+    }
+    #closeWinBtn:hover {
+      background: #f43f5e;
+      color: #fff;
     }
   </style>
 </head>
 <body>
-  <div class="title">J.A.R.V.I.S. MIC RELAY · ACTIVE</div>
-  <div id="status">Requesting microphone…</div>
-  <div id="transcript">Say "Open chart", "Show backtesting", or "Top leads today"</div>
-  <button id="restartBtn" type="button">Restart Mic</button>
+  <div class="header">J.A.R.V.I.S. VOICE RELAY · DSP NOISE FILTER ON</div>
+  <div id="modeBadge">STANDBY — SAY "OPEN VOICE COMMAND"</div>
+  <div id="transcript">Ready. Filtering white noise (300Hz–3400Hz band)…</div>
+  <div class="controls">
+    <button id="toggleModeBtn" type="button">Activate Now</button>
+    <button id="closeWinBtn" type="button">✕ Close Mic</button>
+  </div>
 
   <script>
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const statusEl = document.getElementById('status');
+    const modeBadge = document.getElementById('modeBadge');
     const transcriptEl = document.getElementById('transcript');
-    let rec = null;
+    const toggleModeBtn = document.getElementById('toggleModeBtn');
 
-    function sendToHud(payload) {
+    let commandModeActive = false;
+    let aiSpeaking = false;
+    let isRecognizing = false;
+    let shouldRun = true;
+    let rec = null;
+    let restartTimer = null;
+
+    function postToHud(payload) {
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage(payload, '*');
+        try { window.opener.postMessage(payload, '*'); } catch (e) {}
       }
     }
 
-    function startRelay() {
-      if (!SpeechRec) {
-        statusEl.textContent = 'SpeechRecognition unsupported in this browser.';
-        return;
+    function updateUiState() {
+      if (commandModeActive) {
+        modeBadge.className = 'active';
+        modeBadge.textContent = aiSpeaking
+          ? 'PAUSED WHILE F.R.I.D.A.Y. SPEAKS…'
+          : '● ACTIVE — LISTENING FOR YOUR COMMAND';
+        toggleModeBtn.textContent = 'Set Standby';
+      } else {
+        modeBadge.className = '';
+        modeBadge.textContent = 'STANDBY — SAY "OPEN VOICE COMMAND"';
+        toggleModeBtn.textContent = 'Activate Now';
       }
-      if (rec) {
-        try { rec.stop(); } catch (e) {}
+      postToHud({
+        type: 'JARVIS_VOICE_STATE',
+        listening: commandModeActive && !aiSpeaking,
+        standby: !commandModeActive
+      });
+    }
+
+    // 1. Hardware DSP Noise Suppression + 300Hz-3400Hz Voice Bandpass Filter
+    async function initNoiseFilteredAudio() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1
+          }
+        });
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const src = ctx.createMediaStreamSource(stream);
+
+        // Cut low-frequency fan/AC hum (<300Hz) and high-frequency hiss (>3400Hz)
+        const highPass = ctx.createBiquadFilter();
+        highPass.type = 'highpass';
+        highPass.frequency.value = 300;
+
+        const lowPass = ctx.createBiquadFilter();
+        lowPass.type = 'lowpass';
+        lowPass.frequency.value = 3400;
+
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 64;
+
+        src.connect(highPass);
+        highPass.connect(lowPass);
+        lowPass.connect(analyser);
+
+        const bins = new Uint8Array(analyser.frequencyBinCount);
+        setInterval(() => {
+          if (!commandModeActive || aiSpeaking) return;
+          analyser.getByteFrequencyData(bins);
+          let sum = 0;
+          for (let i = 0; i < bins.length; i++) sum += bins[i];
+          const avg = sum / bins.length;
+          // Noise gate: ignore ambient room noise below threshold 18
+          const level = avg < 18 ? 0.08 : Math.min(1, (avg - 18) / 70);
+          postToHud({ type: 'JARVIS_MIC_LEVEL', level });
+        }, 70);
+      } catch (err) {
+        transcriptEl.textContent = 'Click Allow in the address bar to enable microphone.';
       }
+    }
+
+    function scheduleRestart(delayMs) {
+      clearTimeout(restartTimer);
+      if (!shouldRun || aiSpeaking) return;
+      restartTimer = setTimeout(() => {
+        if (!isRecognizing && shouldRun && !aiSpeaking) {
+          startRecognitionCycle();
+        }
+      }, delayMs);
+    }
+
+    function startRecognitionCycle() {
+      if (!SpeechRec || isRecognizing || !shouldRun || aiSpeaking) return;
 
       rec = new SpeechRec();
       rec.lang = 'en-IN';
-      rec.continuous = true;
+      rec.continuous = false;
       rec.interimResults = true;
+      rec.maxAlternatives = 1;
+
+      let finalClean = '';
 
       rec.onstart = () => {
-        statusEl.style.color = '#f43f5e';
-        statusEl.textContent = '● LISTENING (KEEP THIS MINI WINDOW OPEN)';
-        sendToHud({ type: 'JARVIS_VOICE_STATE', listening: true });
+        isRecognizing = true;
+        updateUiState();
       };
 
       rec.onresult = (event) => {
+        if (aiSpeaking) return;
         let interim = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const text = event.results[i][0].transcript;
+          const alt = event.results[i][0];
+          const text = String(alt.transcript || '').trim();
+          const conf = typeof alt.confidence === 'number' ? alt.confidence : 1;
+
           if (event.results[i].isFinal) {
-            const clean = text.trim();
-            transcriptEl.textContent = 'SENT: "' + clean + '"';
-            sendToHud({ type: 'JARVIS_VOICE_CMD', transcript: clean });
+            // Discard low-confidence background noise unless it contains an explicit command/wake word
+            const hasKeyword = /\b(voice command|open|close|chart|backtest|backtesting|lead|leads|top|brain|zoom|reset|briefing|stop)\b/i.test(text);
+            if (text.length >= 2 && (conf >= 0.50 || hasKeyword)) {
+              finalClean += ' ' + text;
+            }
           } else {
-            interim += text;
+            interim += ' ' + text;
           }
         }
-        if (interim) {
-          transcriptEl.textContent = 'HEARD: "' + interim.trim() + '"';
-          sendToHud({ type: 'JARVIS_VOICE_INTERIM', transcript: interim.trim() });
+
+        const liveText = (finalClean || interim).trim();
+        if (!liveText) return;
+
+        // Check wake phrase immediately even on interim result for zero lag
+        if (!commandModeActive && /\b(open voice command|start voice command|activate voice command)\b/i.test(liveText)) {
+          commandModeActive = true;
+          finalClean = '';
+          transcriptEl.textContent = 'VOICE COMMAND OPENED — SPEAK YOUR TASK';
+          updateUiState();
+          postToHud({ type: 'JARVIS_VOICE_OPENED' });
+          try { rec.abort(); } catch (e) {}
+          return;
+        }
+
+        if (commandModeActive) {
+          transcriptEl.textContent = 'HEARD: "' + liveText + '"';
+          postToHud({ type: 'JARVIS_VOICE_INTERIM', transcript: liveText });
         }
       };
 
       rec.onerror = (e) => {
-        statusEl.style.color = '#ffb340';
-        statusEl.textContent = 'Mic error: ' + e.error + ' — click Allow in address bar';
+        isRecognizing = false;
+        // Silently ignore benign silence/abort events so zero error spam appears
+        if (e.error === 'no-speech' || e.error === 'aborted') {
+          scheduleRestart(180);
+          return;
+        }
+        if (e.error === 'not-allowed') {
+          shouldRun = false;
+          transcriptEl.textContent = 'Microphone permission blocked — click Allow in address bar.';
+          return;
+        }
+        scheduleRestart(600);
       };
 
       rec.onend = () => {
-        sendToHud({ type: 'JARVIS_VOICE_STATE', listening: false });
-        // Auto-restart continuous listening while popup stays open
-        setTimeout(() => {
-          try { rec.start(); } catch (e) {}
-        }, 250);
+        isRecognizing = false;
+        const cmd = finalClean.trim();
+        if (cmd && !aiSpeaking) {
+          if (/\b(close voice command|stop voice command|exit voice command|turn off voice command)\b/i.test(cmd)) {
+            commandModeActive = false;
+            transcriptEl.textContent = 'Voice command closed. Say "open voice command" anytime.';
+            updateUiState();
+            postToHud({ type: 'JARVIS_VOICE_CLOSED' });
+          } else if (commandModeActive) {
+            transcriptEl.textContent = 'EXECUTED: "' + cmd + '"';
+            postToHud({ type: 'JARVIS_VOICE_CMD', transcript: cmd });
+          }
+        }
+        scheduleRestart(150);
       };
 
-      try { rec.start(); } catch (e) {}
+      try {
+        rec.start();
+      } catch (e) {
+        isRecognizing = false;
+        scheduleRestart(350);
+      }
     }
 
-    document.getElementById('restartBtn').addEventListener('click', startRelay);
-    startRelay();
+    // Listen for commands from the main NEPSE Sentinel HUD
+    window.addEventListener('message', (event) => {
+      const data = event.data || {};
+      if (data.type === 'JARVIS_SET_ACTIVE') {
+        commandModeActive = Boolean(data.active);
+        transcriptEl.textContent = commandModeActive
+          ? 'VOICE COMMAND OPENED — SPEAK YOUR TASK'
+          : 'Standby — say "open voice command"';
+        updateUiState();
+      } else if (data.type === 'JARVIS_AI_SPEAKING') {
+        aiSpeaking = Boolean(data.speaking);
+        if (aiSpeaking && rec && isRecognizing) {
+          try { rec.abort(); } catch (e) {}
+        } else if (!aiSpeaking) {
+          scheduleRestart(200);
+        }
+        updateUiState();
+      } else if (data.type === 'JARVIS_VOICE_CLOSE') {
+        shouldRun = false;
+        commandModeActive = false;
+        if (rec) { try { rec.abort(); } catch (e) {} }
+        window.close();
+      }
+    });
+
+    toggleModeBtn.addEventListener('click', () => {
+      commandModeActive = !commandModeActive;
+      updateUiState();
+      postToHud({ type: commandModeActive ? 'JARVIS_VOICE_OPENED' : 'JARVIS_VOICE_CLOSED' });
+    });
+
+    document.getElementById('closeWinBtn').addEventListener('click', () => {
+      shouldRun = false;
+      postToHud({ type: 'JARVIS_VOICE_CLOSED' });
+      window.close();
+    });
+
+    (async function boot() {
+      await initNoiseFilteredAudio();
+      updateUiState();
+      startRecognitionCycle();
+    })();
   </script>
 </body>
 </html>
