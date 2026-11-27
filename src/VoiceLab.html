@@ -1,0 +1,707 @@
+<!-- ==================== VOICE EXPERIMENT LAB (HINGLISH / NEPALI / MAITHILI) ==================== -->
+<style>
+  #vlab-toggle-btn {
+    background: rgba(24, 12, 42, 0.95) !important;
+    border: 1px solid rgba(232, 121, 249, 0.85) !important;
+    color: #f0abfc !important;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(232, 121, 249, 0.22);
+  }
+  #vlab-toggle-btn:hover, #vlab-toggle-btn.active {
+    background: rgba(217, 70, 239, 0.28) !important;
+    color: #ffffff !important;
+  }
+
+  #vlab-studio-modal {
+    position: fixed;
+    top: 46%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    z-index: 999999;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    width: min(640px, 92vw);
+    max-height: 82vh;
+    overflow-y: auto;
+    padding: 15px 18px;
+    background: rgba(11, 7, 24, 0.98);
+    border: 1px solid rgba(232, 121, 249, 0.8);
+    border-top: 3px solid #e879f9;
+    border-bottom: 3px solid #00f5d4;
+    border-radius: 12px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.94), 0 0 30px rgba(217, 70, 239, 0.3);
+    font-family: "Segoe UI", Roboto, sans-serif;
+    color: #f5d0fe;
+  }
+  .vlab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(232, 121, 249, 0.3);
+    padding-bottom: 8px;
+  }
+  .vlab-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0abfc;
+    letter-spacing: 0.5px;
+  }
+  #vlab-close-btn {
+    background: rgba(244, 63, 94, 0.24);
+    border: 1px solid #f43f5e;
+    color: #ffe4e6;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .vlab-lang-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .vlab-lang-btn {
+    background: rgba(30, 18, 52, 0.95);
+    border: 1px solid rgba(192, 132, 252, 0.45);
+    color: #e9d5ff;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+  }
+  .vlab-lang-btn.active {
+    background: linear-gradient(90deg, rgba(217, 70, 239, 0.35), rgba(0, 245, 212, 0.22));
+    border-color: #00f5d4;
+    color: #ffffff;
+  }
+  .vlab-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .vlab-label {
+    font-size: 11px;
+    color: #c084fc;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+  }
+  #vlab-voice-dropdown {
+    width: 100%;
+    background: #160e2c;
+    border: 1px solid rgba(0, 245, 212, 0.6);
+    color: #00f5d4;
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    outline: none;
+  }
+  .vlab-sliders {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    background: rgba(20, 13, 38, 0.9);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    padding: 10px;
+    border-radius: 8px;
+  }
+  .vlab-slider-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+  }
+  .vlab-slider-box input[type="range"] {
+    width: 100%;
+    accent-color: #e879f9;
+    cursor: pointer;
+  }
+  .vlab-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .vlab-preset-chip {
+    background: rgba(0, 245, 212, 0.12);
+    border: 1px solid rgba(0, 245, 212, 0.5);
+    color: #00f5d4;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .vlab-preset-chip:hover {
+    background: rgba(0, 245, 212, 0.25);
+    color: #ffffff;
+  }
+  #vlab-custom-text {
+    width: 100%;
+    min-height: 68px;
+    background: #070410;
+    border: 1px solid #c084fc;
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    resize: vertical;
+    outline: none;
+  }
+  .vlab-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .vlab-btn-primary {
+    background: linear-gradient(90deg, #d946ef, #00f5d4);
+    border: none;
+    color: #070410;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 8px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .vlab-btn-secondary {
+    background: rgba(168, 85, 247, 0.22);
+    border: 1px solid #c084fc;
+    color: #f3e8ff;
+    font-weight: 700;
+    font-size: 11.5px;
+    padding: 8px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  #vlab-status-note {
+    font-size: 11px;
+    color: #00f5d4;
+  }
+</style>
+
+<div id="vlab-studio-modal">
+  <div class="vlab-header">
+    <span class="vlab-title">🌸 VOICE EXPERIMENT STUDIO — HINGLISH · NEPALI · MAITHILI</span>
+    <button id="vlab-close-btn" type="button">✕ CLOSE</button>
+  </div>
+
+  <div class="vlab-lang-tabs">
+    <button type="button" class="vlab-lang-btn active" data-vlab-lang="hinglish">🇮🇳 Hinglish (Sweet)</button>
+    <button type="button" class="vlab-lang-btn" data-vlab-lang="nepali">🇳🇵 Nepali (नेपाली)</button>
+    <button type="button" class="vlab-lang-btn" data-vlab-lang="maithili">🪷 Maithili (मैथिली)</button>
+  </div>
+
+  <div class="vlab-row">
+    <div class="vlab-label">
+      <span>SELECT NEURAL FEMALE VOICE (AUTO-MATCHED FOR ACTIVE LANGUAGE)</span>
+      <span id="vlab-voice-count">Loading voices...</span>
+    </div>
+    <select id="vlab-voice-dropdown"></select>
+  </div>
+
+  <div class="vlab-sliders">
+    <div class="vlab-slider-box">
+      <div class="vlab-label"><span>SWEETNESS (PITCH)</span><span id="vlab-pitch-val">1.12</span></div>
+      <input id="vlab-pitch" type="range" min="0.90" max="1.32" step="0.02" value="1.12" />
+    </div>
+    <div class="vlab-slider-box">
+      <div class="vlab-label"><span>PACE (SPEED)</span><span id="vlab-rate-val">0.93</span></div>
+      <input id="vlab-rate" type="range" min="0.75" max="1.15" step="0.02" value="0.93" />
+    </div>
+    <div class="vlab-slider-box">
+      <div class="vlab-label"><span>BREATH PAUSE</span><span id="vlab-pause-val">130 ms</span></div>
+      <input id="vlab-pause" type="range" min="0" max="320" step="10" value="130" />
+    </div>
+  </div>
+
+  <div class="vlab-row">
+    <div class="vlab-label"><span>1-CLICK SAMPLE PHRASES (TEST TONE &amp; PRONUNCIATION)</span></div>
+    <div class="vlab-presets" id="vlab-presets-wrap"></div>
+  </div>
+
+  <div class="vlab-row">
+    <div class="vlab-label"><span>CUSTOM TEST SCRIPT (TYPE HINGLISH, नेपाली, OR मैथिली)</span></div>
+    <textarea id="vlab-custom-text"></textarea>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+    <span id="vlab-status-note">● Active Dashboard Language: HINGLISH</span>
+    <div class="vlab-actions">
+      <button id="vlab-stop-btn" class="vlab-btn-secondary" type="button">⏹ STOP</button>
+      <button id="vlab-reset-btn" class="vlab-btn-secondary" type="button">↺ SWEET DEFAULTS</button>
+      <button id="vlab-speak-btn" class="vlab-btn-primary" type="button">▶ SPEAK &amp; APPLY</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  if (window.__sentinelVoiceLabInstalled) return;
+  window.__sentinelVoiceLabInstalled = true;
+
+  var STORAGE_KEY = 'nepse_sentinel_voicelab_v1';
+  var speakQueueToken = 0;
+
+  var PRESETS = {
+    hinglish: {
+      label: 'HINGLISH',
+      defaultLangTag: 'en-IN',
+      samples: [
+        { title: 'Warm Greeting', text: 'Namaste Raju ji, kaise hain aap? Aaj ka NEPSE setup kaafi interesting lag raha hai—bataiye, kaunsa chart dekhein?' },
+        { title: 'Chart Analysis', text: 'Ji Raju ji, HURJA ka live chart screen pe laga diya hai. Entry zone aur stop-loss ek baar araam se dekh lijiye.' },
+        { title: 'Market Briefing', text: 'Aaj total 350 companies scan hui hain, jismein top setups NRB approved hain. Risk-reward kaafi clean dikh raha hai.' }
+      ],
+      templates: {
+        welcome: 'Haanji Raju ji, boliye—aaj kaunsa chart ya setup dekhna hai?',
+        close: 'Theek hai Raju ji, voice console close kar diya hai.',
+        clean: 'Bilkul, saare overlays hide kar diye hain—ab screen bilkul clean hai.',
+        chart: 'Ji Raju ji, {TICKER} ka live chart center screen pe laga diya hai—levels araam se dekh lijiye.',
+        backtest: 'AI Committee aur backtest matrix open kar diya hai—dekh lijiye kaunse setups NRB gate pass kar rahe hain.',
+        leads: 'Aaj ke top ranked leads screen pe hain, liquidity aur risk-reward ke hisaab se sorted hain.',
+        telemetry: 'Live execution stream open kar diya hai—recent triggers yahan dikh rahe hain.',
+        briefing: 'Raju ji, quick briefing: total {TOTAL} companies scan hui hain, jismein {APPROVED} setups NRB approved hain. Top radar pe {TOP} chal rahe hain.',
+        diagnosis_ok: 'Raju ji, system bilkul smooth chal raha hai. Pichhle {RUNS} executions mein zero errors hain, aur saare risk gates active hain.',
+        diagnosis_err: 'Heads up Raju ji, recent logs mein {ERRS} errors dikh rahe hain, ek baar check kar lijiye.'
+      }
+    },
+    nepali: {
+      label: 'NEPALI (नेपाली)',
+      defaultLangTag: 'ne-NP',
+      samples: [
+        { title: 'मीठो अभिवादन', text: 'नमस्ते राजु जी, सन्चै हुनुहुन्छ? आजको नेप्से बजार निकै रोचक देखिन्छ—भन्नुहोस्, कुन कम्पनीको चार्ट हेरौँ?' },
+        { title: 'चार्ट विश्लेषण', text: 'हजुर राजु जी, HURJA को लाइभ चार्ट स्क्रिनमा राखिदिएको छु। स्टप-लस र टार्गेट लेभलहरू हेर्नुहोस् है।' },
+        { title: 'बजार ब्रिफिङ', text: 'राजु जी, आज कुल ३५० कम्पनी स्क्यान भएका छन्। एनआरबी स्वीकृत राम्रा सेटअपहरू छानिएका छन्।' }
+      ],
+      templates: {
+        welcome: 'हजुर राजु जी, भन्नुहोस्—आज कुन कम्पनीको चार्ट वा सेटअप हेर्ने?',
+        close: 'हस राजु जी, भ्वाइस कन्सोल बन्द गरिदिएको छु।',
+        clean: 'हुन्छ, सबै प्यानलहरू लुकाइदिएको छु—अहिले स्क्रिन सफा छ।',
+        chart: 'हजुर राजु जी, {TICKER} को लाइभ चार्ट स्क्रिनमा राखिदिएको छु—लेभलहरू हेर्नुहोस् है।',
+        backtest: 'एआई कमिटी र ब्याकटेस्ट म्याट्रिक्स खोलिदिएको छु—कुन सेटअप पास भएका छन् हेर्नुहोस्।',
+        leads: 'आजका उत्कृष्ट लिडहरू स्क्रिनमा छन्, तरलता र जोखिम-प्रतिफल अनुसार मिलाइएका छन्।',
+        telemetry: 'लाइभ टेलिमेट्री स्ट्रिम खोलिदिएको छु।',
+        briefing: 'राजु जी, संक्षिप्त जानकारी: आज कुल {TOTAL} कम्पनी स्क्यान भएका छन्, जसमा {APPROVED} सेटअप एनआरबी स्वीकृत छन्। शीर्ष सूचीमा {TOP} छन्।',
+        diagnosis_ok: 'राजु जी, प्रणाली एकदमै राम्रो चलिरहेको छ। पछिल्ला {RUNS} रनमा कुनै त्रुटि छैन।',
+        diagnosis_err: 'राजु जी, हालैको लगमा {ERRS} वटा त्रुटि देखिएको छ, कृपया जाँच गर्नुहोस्।'
+      }
+    },
+    maithili: {
+      label: 'MAITHILI (मैथिली)',
+      defaultLangTag: 'hi-IN',
+      samples: [
+        { title: 'मधुर प्रणाम', text: 'प्रणाम राजु जी, केना छी अहाँ? आई नेप्से बजार बहुत नीक लगि रहल अछि—कहल जाऊ, कोन शेयर के चार्ट देखल जाए?' },
+        { title: 'चार्ट समीक्षा', text: 'जी राजु जी, HURJA के लाइव चार्ट स्क्रीन पर लगा देल गेल अछि। स्टप-लस आ टार्गेट लेवल नीक सँ देखि लिअ।' },
+        { title: 'बजार हालचाल', text: 'राजु जी, आई कुल ३५० टा कम्पनी स्क्यान भेल अछि, जाहि मे एनआरबी सँ स्वीकृत नीक सेटअप सब छनोट भेल अछि।' }
+      ],
+      templates: {
+        welcome: 'जी राजु जी, कहल जाऊ—आई कोन शेयर के चार्ट वा सेटअप देखबाक अछि?',
+        close: 'ठीक अछि राजु जी, भ्वाइस कन्सोल बन्द कऽ देल गेल अछि।',
+        clean: 'जी, सबटा प्यानल नुका देल गेल अछि—आब स्क्रीन एकदम साफ अछि।',
+        chart: 'जी राजु जी, {TICKER} के लाइव चार्ट स्क्रीन पर लगा देल गेल अछि—लेवल नीक सँ देखि लिअ।',
+        backtest: 'एआई कमिटी आ ब्याकटेस्ट म्याट्रिक्स खोलि देल गेल अछि—देखू कोन सेटअप पास भेल अछि।',
+        leads: 'आई के शीर्ष लीड सब स्क्रीन पर अछि, लिक्विडिटी आ रिस्क-रिवार्ड के हिसाब सँ सजाओल गेल अछि।',
+        telemetry: 'लाइभ टेलिमेट्री स्ट्रिम खोलि देल गेल अछि।',
+        briefing: 'राजु जी, संक्षिप्त विवरण: आई कुल {TOTAL} टा कम्पनी स्क्यान भेल अछि, जाहि मे {APPROVED} टा सेटअप एनआरबी सँ स्वीकृत अछि। शीर्ष सूची मे {TOP} अछि।',
+        diagnosis_ok: 'राजु जी, सिस्टम बिल्कुल नीक चलि रहल अछि। पिछला {RUNS} रन मे कोनो त्रुटि नहि अछि।',
+        diagnosis_err: 'राजु जी, हाल के लग मे {ERRS} टा त्रुटि देखल गेल अछि, एक बेर जाँच कऽ लिअ।'
+      }
+    }
+  };
+
+  var state = {
+    lang: 'hinglish',
+    pitch: 1.12,
+    rate: 0.93,
+    pauseMs: 130,
+    voiceByLang: {
+      hinglish: '',
+      nepali: '',
+      maithili: ''
+    }
+  };
+
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (saved && typeof saved === 'object') {
+      if (saved.lang && PRESETS[saved.lang]) state.lang = saved.lang;
+      if (typeof saved.pitch === 'number') state.pitch = saved.pitch;
+      if (typeof saved.rate === 'number') state.rate = saved.rate;
+      if (typeof saved.pauseMs === 'number') state.pauseMs = saved.pauseMs;
+      if (saved.voiceByLang) {
+        state.voiceByLang.hinglish = saved.voiceByLang.hinglish || '';
+        state.voiceByLang.nepali = saved.voiceByLang.nepali || '';
+        state.voiceByLang.maithili = saved.voiceByLang.maithili || '';
+      }
+    }
+  } catch (e) {}
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  function scoreVoiceForMode(v, mode) {
+    var name = (v.name || '').toLowerCase();
+    var lang = (v.lang || '').toLowerCase();
+    var score = 0;
+
+    if (name.indexOf('online') > -1 || name.indexOf('natural') > -1 || name.indexOf('neural') > -1) score += 250;
+    if (name.indexOf('female') > -1) score += 60;
+
+    // Penalize male/harsh legacy voices
+    if (name.indexOf('prabhat') > -1 || name.indexOf('madhur') > -1 || name.indexOf('ravi') > -1 ||
+        name.indexOf('sagar') > -1 || name.indexOf('david') > -1 || name.indexOf('mark') > -1 || name.indexOf('hemant') > -1) {
+      score -= 800;
+    }
+
+    if (mode === 'nepali') {
+      if (name.indexOf('hemkala') > -1) score += 1200;
+      if (lang === 'ne-np' || lang.indexOf('ne') === 0) score += 900;
+      if (name.indexOf('swara') > -1) score += 450;
+      if (lang === 'hi-in') score += 300;
+    } else if (mode === 'maithili') {
+      // Maithili uses Devanagari script: Swara (hi-IN) & Hemkala (ne-NP) both render it smoothly
+      if (name.indexOf('swara') > -1) score += 1150;
+      if (name.indexOf('hemkala') > -1) score += 1050;
+      if (lang === 'hi-in') score += 700;
+      if (lang === 'ne-np') score += 650;
+      if (name.indexOf('neerja') > -1) score += 400;
+    } else {
+      // Hinglish sweet 25-year-old Indian analyst
+      if (name.indexOf('neerja') > -1 && name.indexOf('natural') > -1) score += 1200;
+      else if (name.indexOf('neerja') > -1) score += 950;
+      else if (name.indexOf('swara') > -1) score += 800;
+      else if (name.indexOf('aditi') > -1 || name.indexOf('raveena') > -1 || name.indexOf('kavya') > -1 || name.indexOf('priya') > -1) score += 750;
+      if (lang === 'en-in') score += 400;
+      if (lang === 'hi-in') score += 280;
+    }
+    return score;
+  }
+
+  function getRankedVoices(mode) {
+    if (!('speechSynthesis' in window)) return [];
+    var all = window.speechSynthesis.getVoices() || [];
+    return all.slice().sort(function(a, b) {
+      return scoreVoiceForMode(b, mode) - scoreVoiceForMode(a, mode);
+    });
+  }
+
+  function refreshVoiceDropdown() {
+    var ranked = getRankedVoices(state.lang);
+    var countEl = document.getElementById('vlab-voice-count');
+    if (countEl) countEl.textContent = ranked.length + ' voices detected';
+
+    var sel = document.getElementById('vlab-voice-dropdown');
+    if (!sel || ranked.length === 0) return;
+
+    var chosenURI = state.voiceByLang[state.lang];
+    if (!chosenURI && ranked[0]) {
+      chosenURI = ranked[0].voiceURI;
+      state.voiceByLang[state.lang] = chosenURI;
+    }
+
+    sel.innerHTML = '';
+    var list = ranked.slice(0, 18);
+    for (var i = 0; i < list.length; i++) {
+      var opt = document.createElement('option');
+      opt.value = list[i].voiceURI;
+      var star = i === 0 ? '★ ' : '';
+      var label = list[i].name
+        .replace('Microsoft ', '')
+        .replace('Online (Natural) - ', '(Natural) ');
+      opt.textContent = star + label + ' [' + list[i].lang + ']';
+      if (list[i].voiceURI === chosenURI) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  // Split text into gentle clauses so the neural voice breathes naturally instead of sounding robotic
+  function splitIntoSweetClauses(text) {
+    var clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!clean) return [];
+    var rawParts = clean.split(/(?<=[,।?!—;])\s+/);
+    var merged = [];
+    for (var i = 0; i < rawParts.length; i++) {
+      var part = rawParts[i].trim();
+      if (!part) continue;
+      if (merged.length > 0 && part.length < 14) {
+        merged[merged.length - 1] += ' ' + part;
+      } else {
+        merged.push(part);
+      }
+    }
+    return merged.length > 0 ? merged : [clean];
+  }
+
+  function speakSweet(text, overrideMode) {
+    var mode = (overrideMode && PRESETS[overrideMode]) ? overrideMode : state.lang;
+    var subText = document.getElementById('friday-subtitle-text');
+    if (subText) subText.textContent = text;
+
+    if (!('speechSynthesis' in window)) return;
+    speakQueueToken++;
+    var myToken = speakQueueToken;
+    window.speechSynthesis.cancel();
+
+    var clauses = splitIntoSweetClauses(text);
+    if (clauses.length === 0) return;
+
+    function speakClauseAt(idx) {
+      if (myToken !== speakQueueToken || idx >= clauses.length) return;
+
+      var allVoices = window.speechSynthesis.getVoices() || [];
+      var targetURI = state.voiceByLang[mode];
+      var chosen = allVoices.find(function(v) { return v.voiceURI === targetURI; });
+      if (!chosen) {
+        var ranked = getRankedVoices(mode);
+        chosen = ranked[0] || null;
+      }
+
+      var u = new SpeechSynthesisUtterance(clauses[idx]);
+      if (chosen) {
+        u.voice = chosen;
+        u.lang = chosen.lang || PRESETS[mode].defaultLangTag;
+      } else {
+        u.lang = PRESETS[mode].defaultLangTag;
+      }
+
+      // Subtle natural inflection across clauses so it sounds warm and alive
+      var pitchOffset = (idx === clauses.length - 1) ? -0.02 : (idx % 2 === 1 ? 0.02 : 0);
+      u.pitch = Math.max(0.85, Math.min(1.35, state.pitch + pitchOffset));
+      u.rate = state.rate;
+      u.volume = 1.0;
+
+      u.onend = function() {
+        if (myToken !== speakQueueToken) return;
+        if (idx + 1 < clauses.length) {
+          setTimeout(function() { speakClauseAt(idx + 1); }, state.pauseMs);
+        }
+      };
+      u.onerror = function() {
+        if (myToken === speakQueueToken && idx + 1 < clauses.length) {
+          speakClauseAt(idx + 1);
+        }
+      };
+
+      window.__sentinelActiveUtterance = u;
+      window.speechSynthesis.speak(u);
+    }
+
+    setTimeout(function() { speakClauseAt(0); }, 40);
+  }
+
+  function speakTemplate(eventKey, vars, fallbackText) {
+    var pack = PRESETS[state.lang] || PRESETS.hinglish;
+    var tpl = (pack.templates && pack.templates[eventKey]) || fallbackText || '';
+    if (vars && typeof vars === 'object') {
+      Object.keys(vars).forEach(function(k) {
+        tpl = tpl.replace(new RegExp('\\{' + k + '\\}', 'g'), String(vars[k]));
+      });
+    }
+    if (tpl) speakSweet(tpl, state.lang);
+  }
+
+  function renderLanguageUI() {
+    var langBtns = document.querySelectorAll('[data-vlab-lang]');
+    for (var i = 0; i < langBtns.length; i++) {
+      var l = langBtns[i].getAttribute('data-vlab-lang');
+      if (l === state.lang) langBtns[i].classList.add('active');
+      else langBtns[i].classList.remove('active');
+    }
+
+    var pack = PRESETS[state.lang];
+    var wrap = document.getElementById('vlab-presets-wrap');
+    var box = document.getElementById('vlab-custom-text');
+    if (wrap && pack) {
+      wrap.innerHTML = pack.samples.map(function(s, idx) {
+        return '<button type="button" class="vlab-preset-chip" data-sample-idx="' + idx + '">▶ ' + s.title + '</button>';
+      }).join('');
+
+      var chips = wrap.querySelectorAll('[data-sample-idx]');
+      for (var c = 0; c < chips.length; c++) {
+        chips[c].addEventListener('click', function() {
+          var sObj = pack.samples[Number(this.getAttribute('data-sample-idx'))];
+          if (sObj && box) {
+            box.value = sObj.text;
+            speakSweet(sObj.text, state.lang);
+          }
+        });
+      }
+      if (box && pack.samples[0]) box.value = pack.samples[0].text;
+    }
+
+    var statusNote = document.getElementById('vlab-status-note');
+    if (statusNote && pack) {
+      statusNote.textContent = '● Active Dashboard Language: ' + pack.label;
+    }
+
+    refreshVoiceDropdown();
+  }
+
+  function openVoiceLab() {
+    var modal = document.getElementById('vlab-studio-modal');
+    var btn = document.getElementById('vlab-toggle-btn');
+    if (modal) modal.style.display = 'flex';
+    if (btn) btn.classList.add('active');
+    renderLanguageUI();
+  }
+
+  function closeVoiceLab() {
+    var modal = document.getElementById('vlab-studio-modal');
+    var btn = document.getElementById('vlab-toggle-btn');
+    if (modal) modal.style.display = 'none';
+    if (btn) btn.classList.remove('active');
+  }
+
+  function mountVoiceLabButton() {
+    var dock = document.getElementById('jarvis-floating-dock');
+    if (dock && !document.getElementById('vlab-toggle-btn')) {
+      var btn = document.createElement('button');
+      btn.id = 'vlab-toggle-btn';
+      btn.type = 'button';
+      btn.innerHTML = '🌸 VOICE LAB';
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var modal = document.getElementById('vlab-studio-modal');
+        if (modal && modal.style.display === 'flex') closeVoiceLab();
+        else openVoiceLab();
+      });
+      dock.insertBefore(btn, dock.firstChild);
+    }
+
+    var closeBtn = document.getElementById('vlab-close-btn');
+    if (closeBtn && !closeBtn.__wired) {
+      closeBtn.__wired = true;
+      closeBtn.addEventListener('click', closeVoiceLab);
+    }
+
+    var langBtns = document.querySelectorAll('[data-vlab-lang]');
+    for (var i = 0; i < langBtns.length; i++) {
+      if (!langBtns[i].__wired) {
+        langBtns[i].__wired = true;
+        langBtns[i].addEventListener('click', function() {
+          state.lang = this.getAttribute('data-vlab-lang');
+          saveState();
+          renderLanguageUI();
+          var sample = PRESETS[state.lang].samples[0];
+          if (sample) speakSweet(sample.text, state.lang);
+        });
+      }
+    }
+
+    var voiceDrop = document.getElementById('vlab-voice-dropdown');
+    if (voiceDrop && !voiceDrop.__wired) {
+      voiceDrop.__wired = true;
+      voiceDrop.addEventListener('change', function() {
+        state.voiceByLang[state.lang] = this.value;
+        saveState();
+        var box = document.getElementById('vlab-custom-text');
+        if (box && box.value.trim()) speakSweet(box.value.trim(), state.lang);
+      });
+    }
+
+    var pitchEl = document.getElementById('vlab-pitch');
+    var rateEl = document.getElementById('vlab-rate');
+    var pauseEl = document.getElementById('vlab-pause');
+
+    if (pitchEl && !pitchEl.__wired) {
+      pitchEl.__wired = true;
+      pitchEl.value = state.pitch;
+      document.getElementById('vlab-pitch-val').textContent = state.pitch.toFixed(2);
+      pitchEl.addEventListener('input', function() {
+        state.pitch = Number(this.value);
+        document.getElementById('vlab-pitch-val').textContent = state.pitch.toFixed(2);
+        saveState();
+      });
+    }
+
+    if (rateEl && !rateEl.__wired) {
+      rateEl.__wired = true;
+      rateEl.value = state.rate;
+      document.getElementById('vlab-rate-val').textContent = state.rate.toFixed(2);
+      rateEl.addEventListener('input', function() {
+        state.rate = Number(this.value);
+        document.getElementById('vlab-rate-val').textContent = state.rate.toFixed(2);
+        saveState();
+      });
+    }
+
+    if (pauseEl && !pauseEl.__wired) {
+      pauseEl.__wired = true;
+      pauseEl.value = state.pauseMs;
+      document.getElementById('vlab-pause-val').textContent = state.pauseMs + ' ms';
+      pauseEl.addEventListener('input', function() {
+        state.pauseMs = Number(this.value);
+        document.getElementById('vlab-pause-val').textContent = state.pauseMs + ' ms';
+        saveState();
+      });
+    }
+
+    var speakBtn = document.getElementById('vlab-speak-btn');
+    if (speakBtn && !speakBtn.__wired) {
+      speakBtn.__wired = true;
+      speakBtn.addEventListener('click', function() {
+        saveState();
+        var box = document.getElementById('vlab-custom-text');
+        if (box && box.value.trim()) speakSweet(box.value.trim(), state.lang);
+      });
+    }
+
+    var stopBtn = document.getElementById('vlab-stop-btn');
+    if (stopBtn && !stopBtn.__wired) {
+      stopBtn.__wired = true;
+      stopBtn.addEventListener('click', function() {
+        speakQueueToken++;
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      });
+    }
+
+    var resetBtn = document.getElementById('vlab-reset-btn');
+    if (resetBtn && !resetBtn.__wired) {
+      resetBtn.__wired = true;
+      resetBtn.addEventListener('click', function() {
+        state.pitch = 1.12;
+        state.rate = 0.93;
+        state.pauseMs = 130;
+        saveState();
+        if (pitchEl) { pitchEl.value = 1.12; document.getElementById('vlab-pitch-val').textContent = '1.12'; }
+        if (rateEl) { rateEl.value = 0.93; document.getElementById('vlab-rate-val').textContent = '0.93'; }
+        if (pauseEl) { pauseEl.value = 130; document.getElementById('vlab-pause-val').textContent = '130 ms'; }
+        var box = document.getElementById('vlab-custom-text');
+        if (box && box.value.trim()) speakSweet(box.value.trim(), state.lang);
+      });
+    }
+  }
+
+  if ('speechSynthesis' in window) {
+    refreshVoiceDropdown();
+    window.speechSynthesis.onvoiceschanged = refreshVoiceDropdown;
+  }
+
+  var mountTicks = 0;
+  var mountLoop = setInterval(function() {
+    mountVoiceLabButton();
+    mountTicks++;
+    if (mountTicks > 20) clearInterval(mountLoop);
+  }, 300);
+
+  window.SentinelVoiceLab = {
+    open: openVoiceLab,
+    close: closeVoiceLab,
+    speak: speakSweet,
+    speakTemplate: speakTemplate,
+    getLanguage: function() { return state.lang; }
+  };
+})();
+</script>
+<!-- ==================== END VOICE EXPERIMENT LAB ==================== -->

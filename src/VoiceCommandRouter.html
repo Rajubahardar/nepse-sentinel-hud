@@ -1,410 +1,2349 @@
-<!-- ==================== IRON MAN HUD 3D KNOWLEDGE GRAPH VOICE EXECUTOR ==================== -->
+<!-- ==================== 3D 360° NEPSE KNOWLEDGE GRAPH + AUTONOMOUS AI COMMITTEE ==================== -->
 <style>
+  body.kg-explorer-mode .hud-top,
+  body.kg-explorer-mode #hudPanel,
+  body.kg-explorer-mode #legendBar,
+  body.kg-explorer-mode [data-jarvis-hud-panel="true"] {
+    display: none !important;
+  }
+
+  * { box-sizing: border-box; }
+
+  body.kg-explorer-mode {
+    margin: 0;
+    padding: 0;
+    background: #111318 !important;
+    color: #f1f5f9;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+
+  /* LEFT NAVIGATION SIDEBAR */
+  #kg-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 214px;
+    background: #151821;
+    border-right: 1px solid #242936;
+    z-index: 999985;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.2s ease;
+    user-select: none;
+  }
+  #kg-sidebar.collapsed { width: 54px; }
+  #kg-sidebar.collapsed .kg-hide-col { display: none !important; }
+  .kg-brand {
+    display: flex;
+    align-items: center;
+    padding: 13px 14px;
+    border-bottom: 1px solid #242936;
+  }
+  .kg-brand-left { display: flex; align-items: center; gap: 9px; }
+  .kg-brand-logo {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    color: #ffffff;
+    flex-shrink: 0;
+  }
+  .kg-brand-title { font-size: 13px; font-weight: 700; color: #f8fafc; line-height: 1.2; }
+  .kg-brand-sub { font-size: 10px; color: #64748b; }
+  .kg-nav-scroll { flex: 1; overflow-y: auto; padding: 10px 8px; }
+  .kg-nav-group { margin-bottom: 14px; }
+  .kg-nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    padding: 0 10px 5px;
+    letter-spacing: 0.4px;
+  }
+  .kg-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 2px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .kg-nav-item:hover { background: #1e2330; color: #ffffff; }
+  .kg-nav-item.active { background: #232938; color: #ffffff; font-weight: 600; }
+  .kg-nav-icon { width: 16px; text-align: center; font-size: 13px; color: #94a3b8; flex-shrink: 0; }
+  .kg-nav-item.active .kg-nav-icon { color: #38bdf8; }
+  .kg-sidebar-footer {
+    padding: 10px 12px;
+    border-top: 1px solid #242936;
+    font-size: 10.5px;
+    color: #94a3b8;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* TOP BAR & SUBHEADER */
+  #kg-topbar {
+    position: fixed;
+    top: 0;
+    left: 214px;
+    right: 0;
+    height: 44px;
+    background: #13161e;
+    border-bottom: 1px solid #242936;
+    z-index: 999984;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    transition: left 0.2s ease;
+  }
+  body.kg-sidebar-collapsed #kg-topbar,
+  body.kg-sidebar-collapsed #kg-subheader,
+  body.kg-sidebar-collapsed #graph3d { left: 54px !important; }
+  .kg-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; }
+  #kg-sidebar-toggle {
+    background: transparent;
+    border: 1px solid #2c3242;
+    color: #cbd5e1;
+    border-radius: 5px;
+    padding: 3px 7px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .kg-topbar-right { display: flex; align-items: center; gap: 9px; }
+  #jlh-market-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  #jlh-market-badge.is-live { background: rgba(16,185,129,0.16); border: 1px solid rgba(16,185,129,0.5); color: #34d399; }
+  #jlh-market-badge.is-pre { background: rgba(245,158,11,0.16); border: 1px solid rgba(245,158,11,0.5); color: #fbbf24; }
+  #jlh-market-badge.is-closed { background: rgba(148,163,184,0.12); border: 1px solid #334155; color: #94a3b8; }
+  #jlh-npt-clock { font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
+  .kg-voice-master-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #334155;
+    background: #1a1e29;
+    color: #94a3b8;
+  }
+  .kg-voice-master-btn.is-on { background: rgba(16,185,129,0.16); border-color: rgba(16,185,129,0.55); color: #34d399; }
+  .kg-voice-master-btn.is-off { background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.45); color: #fca5a5; }
+  .kg-top-search-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1a1e29;
+    border: 1px solid #2b3140;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: #94a3b8;
+    cursor: pointer;
+  }
+  .kg-top-search-pill kbd { background: #252b38; border-radius: 3px; padding: 1px 5px; font-size: 10px; color: #cbd5e1; }
+
+  #kg-subheader {
+    position: fixed;
+    top: 44px;
+    left: 214px;
+    right: 0;
+    height: 62px;
+    background: #13161e;
+    border-bottom: 1px solid #242936;
+    z-index: 999983;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    transition: left 0.2s ease;
+  }
+  .kg-title-block h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .kg-title-sub { margin-top: 2px; font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; gap: 10px; }
+  #kg-sync-stamp { color: #34d399; font-weight: 600; }
+  .kg-subheader-actions { display: flex; align-items: center; gap: 8px; }
+  .kg-source-switch {
+    display: inline-flex;
+    align-items: center;
+    background: #1a1e29;
+    border: 1px solid #2c3344;
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .kg-src-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .kg-src-btn.active { background: #2563eb; color: #ffffff; }
+  .kg-hdr-btn {
+    background: #1b202c;
+    border: 1px solid #2e3546;
+    color: #e2e8f0;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .kg-hdr-btn:hover { border-color: #3b82f6; color: #ffffff; }
+  .kg-hdr-btn.active { background: rgba(37,99,235,0.22); border-color: #3b82f6; color: #93c5fd; }
+  .kg-hdr-btn.brief-cta {
+    background: linear-gradient(135deg, rgba(16,185,129,0.24), rgba(37,99,235,0.24));
+    border-color: #10b981;
+    color: #6ee7b7;
+  }
+
+  /* 3D 360° WEBGL VIEWPORT */
+  #graph3d {
+    position: fixed !important;
+    top: 106px !important;
+    left: 214px !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    background: radial-gradient(circle at 62% 50%, #191e2b 0%, #111318 75%, #0c0e12 100%) !important;
+    overflow: hidden !important;
+    display: block !important;
+    transition: left 0.2s ease;
+  }
+  #kg-3d-canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+  #kg-3d-canvas:active { cursor: grabbing; }
+
+  /* FLOATING CONTROLS CARD */
+  #kg-controls-card {
+    position: fixed;
+    top: 120px;
+    left: 228px;
+    width: 266px;
+    max-height: calc(100vh - 136px);
+    background: rgba(24, 28, 37, 0.96);
+    border: 1px solid #2c3242;
+    border-radius: 9px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    z-index: 999982;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: left 0.2s ease;
+  }
+  body.kg-sidebar-collapsed #kg-controls-card { left: 68px; }
+  .kg-ctrl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid #262c3a;
+    cursor: pointer;
+    user-select: none;
+  }
+  .kg-ctrl-title { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; color: #f8fafc; }
+  .kg-ctrl-count { font-size: 10.5px; font-weight: 600; background: #232836; color: #cbd5e1; padding: 2px 7px; border-radius: 4px; }
+  .kg-ctrl-body { padding: 10px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  #kg-controls-card.collapsed .kg-ctrl-body { display: none; }
+  .kg-select, .kg-search-input {
+    width: 100%;
+    background: #13161f;
+    border: 1px solid #2d3445;
+    color: #e2e8f0;
+    border-radius: 6px;
+    padding: 6px 9px;
+    font-size: 11.5px;
+    outline: none;
+  }
+  .kg-field-label { font-size: 10.5px; font-weight: 600; color: #94a3b8; margin-bottom: 3px; display: block; }
+  .kg-mode-row { display: flex; align-items: center; gap: 6px; }
+  .kg-mode-btn {
+    flex: 1;
+    background: #1c212d;
+    border: 1px solid #2e3546;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .kg-mode-btn.active { background: #2563eb; border-color: #3b82f6; color: #ffffff; }
+  .kg-types-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    color: #cbd5e1;
+    padding-top: 4px;
+    border-top: 1px solid #262c3a;
+  }
+  .kg-types-links span { color: #94a3b8; cursor: pointer; margin-left: 8px; font-size: 10.5px; }
+  .kg-types-links span:hover { color: #38bdf8; }
+  #kg-entity-type-list { display: flex; flex-direction: column; gap: 4px; }
+  .kg-type-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #e2e8f0; padding: 2px; cursor: pointer; }
+  .kg-type-left { display: flex; align-items: center; gap: 7px; }
+  .kg-type-left input[type="checkbox"] { accent-color: #2563eb; cursor: pointer; margin: 0; }
+  .kg-shape-glyph { display: inline-block; width: 12px; text-align: center; font-size: 11px; }
+  .kg-type-cnt { color: #94a3b8; font-size: 10.5px; font-variant-numeric: tabular-nums; }
+  .kg-bottom-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding-top: 6px; border-top: 1px solid #262c3a; }
+  .kg-action-btn {
+    background: #1c212d;
+    border: 1px solid #2f3648;
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .kg-action-btn:hover { border-color: #3b82f6; background: #232938; }
+
+  /* RIGHT-SIDE INVESTMENT BRIEFING PANEL */
+  #kg-briefing-drawer {
+    position: fixed;
+    top: 120px;
+    right: 16px;
+    width: 345px;
+    max-height: calc(100vh - 180px);
+    background: rgba(20, 24, 33, 0.97);
+    border: 1px solid #2f374a;
+    border-radius: 9px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65);
+    z-index: 999982;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #kg-briefing-drawer.collapsed .kg-brief-body { display: none; }
+  .kg-brief-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #181d28;
+    border-bottom: 1px solid #283042;
+    cursor: pointer;
+  }
+  .kg-brief-title { font-size: 12px; font-weight: 700; color: #facc15; display: flex; align-items: center; gap: 6px; }
+  .kg-brief-body { padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .kg-pick-card {
+    background: #141822;
+    border: 1px solid #283042;
+    border-left: 3px solid #10b981;
+    border-radius: 7px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .kg-pick-card:hover { border-color: #38bdf8; background: #191f2c; }
+  .kg-pick-top { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; }
+  .kg-pick-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+  }
+  .kg-pick-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 10.5px;
+    color: #cbd5e1;
+    background: #10131b;
+    padding: 5px 6px;
+    border-radius: 5px;
+  }
+  .kg-pick-note { margin-top: 5px; font-size: 10.5px; color: #94a3b8; }
+
+  /* TOOLTIP & DOCK */
+  #sentinel-node-tooltip {
+    position: fixed;
+    z-index: 999995;
+    pointer-events: none;
+    display: none;
+    background: rgba(19, 23, 32, 0.97);
+    border: 1px solid #3b82f6;
+    border-radius: 7px;
+    padding: 8px 11px;
+    font-size: 11.5px;
+    color: #f1f5f9;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75);
+    max-width: 285px;
+  }
+  #jarvis-floating-dock {
+    position: fixed;
+    bottom: 14px;
+    right: 16px;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  #jarvis-status-pill {
+    background: rgba(22, 26, 35, 0.95);
+    border: 1px solid #2e3546;
+    color: #cbd5e1;
+    border-radius: 7px;
+    padding: 7px 11px;
+    font-size: 11px;
+    font-weight: 600;
+  }
   #jarvis-mic-btn {
-    border-color: #00f5d4 !important;
-    color: #00f5d4 !important;
+    background: #1e2433 !important;
+    border: 1px solid #3b82f6 !important;
+    color: #93c5fd !important;
+    border-radius: 7px;
+    padding: 7px 13px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ZERO-POPUP INTERACTIVE NEPSEALPHA / TRADINGVIEW CHART + GMAIL LOGIN STAGE */
+  #jarvis-center-stage {
+    position: fixed;
+    top: 52%;
+    left: 52%;
+    transform: translateX(-50%) translateY(-50%);
+    z-index: 999990;
+    display: none;
+    flex-direction: column;
+    width: min(980px, 76vw);
+    max-height: 86vh;
+    background: #13161f;
+    border: 1px solid #3b82f6;
+    border-radius: 9px;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.9);
+    overflow: hidden;
+  }
+  .jcs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 13px;
+    background: #181c27;
+    border-bottom: 1px solid #282f40;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .jcs-tabs { display: flex; align-items: center; gap: 5px; overflow-x: auto; }
+  .jcs-tab {
+    background: #212634;
+    border: 1px solid #323a4e;
+    color: #cbd5e1;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
-  #jarvis-mic-btn.active {
-    background: rgba(244, 63, 94, 0.28) !important;
-    border-color: #f43f5e !important;
-    color: #ffe4e6 !important;
-    box-shadow: 0 0 14px rgba(244, 63, 94, 0.55);
+  .jcs-tab.active { background: rgba(37,99,235,0.25); border-color: #3b82f6; color: #93c5fd; }
+  .jcs-header-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .jcs-mini-action {
+    background: #1d4ed8;
+    border: 1px solid #3b82f6;
+    color: #ffffff;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
   }
-  #jarvis-mic-close-btn {
-    border-color: #f43f5e !important;
-    color: #fda4af !important;
-    background: rgba(244, 63, 94, 0.16) !important;
+  .jcs-mini-action:hover { background: #2563eb; }
+  .jcs-tog-btn {
+    background: #111622;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .jcs-tog-btn.is-on {
+    border-color: #38bdf8;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+  }
+  #jcs-close-btn {
+    background: rgba(239,68,68,0.2);
+    border: 1px solid #ef4444;
+    color: #fecaca;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #jcs-body {
+    flex: 1;
+    width: 100%;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #0f1117;
+    overflow-y: auto;
+  }
+  .jcs-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .jcs-kpi-box {
+    background: #161a24;
+    border: 1px solid #283042;
+    border-radius: 7px;
+    padding: 8px 10px;
+  }
+  .jcs-kpi-lbl { font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+  .jcs-kpi-val { font-size: 14px; font-weight: 800; color: #f8fafc; margin-top: 2px; }
+  #jcs-tv-container {
+    width: 100%;
+    height: 345px;
+    background: #ffffff;
+    border: 1px solid #283042;
+    border-radius: 7px;
+    overflow: hidden;
+    position: relative;
+  }
+  .jcs-thesis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .jcs-thesis-box {
+    background: #161a24;
+    border: 1px solid #283042;
+    border-radius: 7px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #cbd5e1;
+  }
+
+  /* COMMAND CONSOLE */
+  #jarvis-command-bar {
+    position: fixed;
+    bottom: 54px;
+    left: 52%;
+    transform: translateX(-50%);
+    z-index: 999998;
     display: none;
-    align-items: center;
-    padding: 6px 10px !important;
+    flex-direction: column;
+    gap: 7px;
+    width: min(760px, 74vw);
+    padding: 11px 14px;
+    background: rgba(20, 24, 33, 0.98);
+    border: 1px solid #3b82f6;
+    border-left: 4px solid #10b981;
+    border-radius: 9px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
   }
-  #jarvis-mic-close-btn:hover {
-    background: #f43f5e !important;
-    color: #ffffff !important;
-  }
+  .jcb-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; }
+  .jcb-input-row { display: flex; gap: 7px; }
+  #jcb-input { flex: 1; background: #111318; border: 1px solid #3b82f6; color: #fff; font-size: 12.5px; padding: 6px 10px; border-radius: 6px; outline: none; }
+  #jcb-run-btn { background: #2563eb; border: none; color: #fff; font-size: 11px; font-weight: 700; padding: 6px 13px; border-radius: 6px; cursor: pointer; }
+  .jcb-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .jcb-chip { background: #1c212d; border: 1px solid #2f3749; color: #cbd5e1; font-size: 11px; padding: 3.5px 8.5px; border-radius: 6px; cursor: pointer; }
 </style>
+
+<!-- SIDEBAR -->
+<aside id="kg-sidebar">
+  <div class="kg-brand">
+    <div class="kg-brand-left">
+      <div class="kg-brand-logo">N</div>
+      <div class="kg-hide-col">
+        <div class="kg-brand-title">NEPSE Sentinel</div>
+        <div class="kg-brand-sub">Autonomous AI 3D</div>
+      </div>
+    </div>
+  </div>
+  <div class="kg-nav-scroll">
+    <div class="kg-nav-group">
+      <div class="kg-nav-label kg-hide-col">Autonomous AI</div>
+      <div class="kg-nav-item" data-nav="briefing">
+        <span class="kg-nav-icon">📋</span>
+        <span class="kg-hide-col">Investment Briefing</span>
+      </div>
+      <div class="kg-nav-item" data-nav="committee">
+        <span class="kg-nav-icon">⚡</span>
+        <span class="kg-hide-col">Force Live Scan</span>
+      </div>
+    </div>
+    <div class="kg-nav-group">
+      <div class="kg-nav-label kg-hide-col">Views</div>
+      <div class="kg-nav-item active" data-nav="explorer">
+        <span class="kg-nav-icon">🕸️</span>
+        <span class="kg-hide-col">3D 360° Graph</span>
+      </div>
+      <div class="kg-nav-item" data-nav="pass-only">
+        <span class="kg-nav-icon">★</span>
+        <span class="kg-hide-col">AI Pass Only</span>
+      </div>
+      <div class="kg-nav-item" data-nav="chart">
+        <span class="kg-nav-icon">📈</span>
+        <span class="kg-hide-col">Trade Plan Chart</span>
+      </div>
+    </div>
+    <div class="kg-nav-group">
+      <div class="kg-nav-label kg-hide-col">Audio & Console</div>
+      <div class="kg-nav-item" data-nav="toggle-voice">
+        <span class="kg-nav-icon" id="kg-nav-voice-icon">🔇</span>
+        <span class="kg-hide-col" id="kg-nav-voice-label">Voice: OFF</span>
+      </div>
+      <div class="kg-nav-item" data-nav="voicecmd">
+        <span class="kg-nav-icon">⌨️</span>
+        <span class="kg-hide-col">Command Console</span>
+      </div>
+    </div>
+  </div>
+  <div class="kg-sidebar-footer kg-hide-col">
+    <div id="kg-side-tech">Tech Agent: AUTO</div>
+    <div id="kg-side-macro">NRB Macro: AUTO</div>
+    <div id="kg-side-risk">Kelly Risk: AUTO</div>
+  </div>
+</aside>
+
+<!-- TOP BAR -->
+<header id="kg-topbar">
+  <div class="kg-breadcrumb">
+    <button id="kg-sidebar-toggle" type="button">◧</button>
+    <span>Autonomous Cloud</span>
+    <span>›</span>
+    <strong style="color:#f1f5f9;">3D 360° Knowledge Graph</strong>
+  </div>
+  <div class="kg-topbar-right">
+    <button id="kg-voice-master-top" class="kg-voice-master-btn is-off" type="button">🔇 Voice: OFF</button>
+    <span id="jlh-market-badge" class="is-live">● NEPSE LIVE</span>
+    <span id="jlh-npt-clock">NPT --:--:--</span>
+    <div class="kg-top-search-pill" id="kg-quick-search-pill">
+      <span>🔍 Search</span>
+      <kbd>Ctrl K</kbd>
+    </div>
+  </div>
+</header>
+
+<!-- SUBHEADER -->
+<section id="kg-subheader">
+  <div class="kg-title-block">
+    <h1>🕸️ Knowledge Graph Explorer <span style="font-size:11px;font-weight:600;color:#38bdf8;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.35);padding:2px 7px;border-radius:5px;">3D 360° AUTO</span></h1>
+    <div class="kg-title-sub">
+      <span id="kg-stats-subtitle">Loading 3D graph...</span>
+      <span id="kg-sync-stamp">Auto-syncing live NEPSE feed...</span>
+    </div>
+  </div>
+  <div class="kg-subheader-actions">
+    <button class="kg-hdr-btn brief-cta" id="kg-auto-brief-btn" type="button">📋 Investment Briefing</button>
+    <button class="kg-hdr-btn" id="kg-orbit-btn" type="button">↻ 360° Orbit</button>
+    <div class="kg-source-switch">
+      <button class="kg-src-btn" id="kg-src-sheet" type="button">🗄️ Sheet Data</button>
+      <button class="kg-src-btn active" id="kg-src-graphdb" type="button">☍ Graph DB</button>
+    </div>
+    <button class="kg-hdr-btn" id="kg-refresh-btn" type="button">↻ Sync Now</button>
+  </div>
+</section>
+
+<!-- LEFT FLOATING CONTROLS -->
+<aside id="kg-controls-card">
+  <div class="kg-ctrl-header" id="kg-ctrl-toggle">
+    <div class="kg-ctrl-title">
+      <span>▽ Controls</span>
+      <span class="kg-ctrl-count" id="kg-ctrl-ratio">0/0</span>
+    </div>
+    <span style="color:#94a3b8;font-size:11px;">⌃</span>
+  </div>
+  <div class="kg-ctrl-body">
+    <select id="kg-sector-filter" class="kg-select">
+      <option value="ALL">Filter by Sector (All Sectors)</option>
+    </select>
+    <div>
+      <label class="kg-field-label" for="kg-search-box">Search Entities</label>
+      <input id="kg-search-box" class="kg-search-input" type="text" placeholder="Q type symbol (e.g. NABIL, HURJA)..." autocomplete="off" />
+    </div>
+    <div class="kg-mode-row">
+      <button id="kg-mode-highlight" class="kg-mode-btn active" type="button">✦ Highlight</button>
+      <button id="kg-mode-filter" class="kg-mode-btn" type="button">▽ Filter</button>
+    </div>
+    <div class="kg-types-head">
+      <span>Entity Types</span>
+      <div class="kg-types-links">
+        <span id="kg-types-all">All</span>
+        <span id="kg-types-none">None</span>
+      </div>
+    </div>
+    <div id="kg-entity-type-list"></div>
+    <div class="kg-bottom-actions">
+      <button id="kg-relayout-btn" class="kg-action-btn" type="button">⇄ Re-layout</button>
+      <button id="kg-recenter-btn" class="kg-action-btn" type="button">↗ Recenter 360°</button>
+    </div>
+  </div>
+</aside>
+
+<!-- RIGHT FLOATING INVESTMENT BRIEFING DRAWER -->
+<aside id="kg-briefing-drawer">
+  <div class="kg-brief-head" id="kg-brief-toggle">
+    <div class="kg-brief-title">★ AI Committee Investment Picks (<span id="kg-brief-count">0</span>)</div>
+    <span style="color:#94a3b8;font-size:11px;">⌃</span>
+  </div>
+  <div class="kg-brief-body" id="kg-brief-list">
+    <div style="font-size:11.5px;color:#94a3b8;padding:8px;">Fetching live NEPSE market setups automatically...</div>
+  </div>
+</aside>
+
+<!-- HOVER TOOLTIP -->
+<div id="sentinel-node-tooltip"></div>
+
+<!-- ZERO-POPUP INTERACTIVE NEPSEALPHA / TRADINGVIEW CHART + GMAIL LOGIN STAGE -->
+<div id="jarvis-center-stage">
+  <div class="jcs-header">
+    <div class="jcs-tabs" id="jcs-tabs"></div>
+    <div class="jcs-header-actions">
+      <button id="jcs-mode-ta" class="jcs-tog-btn is-on" type="button">📊 Pro TA Chart</button>
+      <button id="jcs-mode-live" class="jcs-tog-btn" type="button">🌐 NepseAlpha Live</button>
+      <button id="jcs-tog-theme" class="jcs-tog-btn is-on" type="button">☀️ Light TV</button>
+      <button id="jcs-tog-ema" class="jcs-tog-btn is-on" type="button">EMA 20/50: ON</button>
+      <button id="jcs-tog-levels" class="jcs-tog-btn is-on" type="button">AI Levels: ON</button>
+      <a id="jcs-open-ext-btn" class="jcs-mini-action" style="background:#5b21b6;border-color:#8b5cf6;" href="https://nepsealpha.com/login" target="_blank" rel="noopener">→ Free Login For Live</a>
+      <button id="jcs-lock-btn" class="jcs-tog-btn" type="button" title="Lock / Logout Graph">🔒 Lock</button>
+      <button id="jcs-close-btn" type="button">✕ CLOSE</button>
+    </div>
+  </div>
+  <div id="jcs-body"></div>
+</div>
+
+<!-- COMMAND CONSOLE -->
+<div id="jarvis-command-bar">
+  <div class="jcb-top">
+    <span id="jcb-status" style="color:#38bdf8;font-weight:700;">● COMMAND CONSOLE</span>
+    <div style="display:flex;gap:6px;">
+      <button id="jcb-mute-toggle-btn" class="kg-voice-master-btn is-off" type="button">🔇 Voice: OFF</button>
+      <button id="jcb-close-x" type="button" style="background:rgba(239,68,68,0.22);border:1px solid #ef4444;color:#fecaca;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;">✕ CLOSE</button>
+    </div>
+  </div>
+  <div class="jcb-input-row">
+    <input id="jcb-input" type="text" placeholder="Type symbol (e.g. NABIL) or command ('briefing', 'scan', 'recenter')..." autocomplete="off" />
+    <button id="jcb-run-btn" type="button">RUN</button>
+  </div>
+  <div class="jcb-chips">
+    <button class="jcb-chip" type="button" data-cmd="briefing">📋 Investment Briefing</button>
+    <button class="jcb-chip" type="button" data-cmd="scan">⚡ Force Live Scan</button>
+    <button class="jcb-chip" type="button" data-cmd="recenter">↗ Recenter 360°</button>
+    <button class="jcb-chip" type="button" data-cmd="close chart">🧹 Close Chart</button>
+  </div>
+</div>
 
 <script>
 (function() {
-  if (window.__jarvisVoiceCommandRouterInstalled) return;
-  window.__jarvisVoiceCommandRouterInstalled = true;
+  if (window.__nepseAutonomous3DKGInstalled) return;
+  window.__nepseAutonomous3DKGInstalled = true;
 
-  var isEmbeddedInShell = (window.parent !== window);
-  var isVoiceOpen = false;
-  var cachedGraph = null;
-  var SHELL_URL = 'https://rajubahardar.github.io/nepse-sentinel-hud/';
+  document.body.classList.add('kg-explorer-mode');
 
-  // 1. Capture live ForceGraph3D instance from DOM container (__kapsuleInstance) or globals
-  function resolveGraphInstance() {
-    if (cachedGraph && typeof cachedGraph.graphData === 'function') return cachedGraph;
+  var isVoiceEnabled = false;
+  var isConsoleOpen = false;
+  var briefingToken = 0;
+  var openChartTickers = [];
+  var activeChartTicker = '';
+  var liveRawData = { setups: [] };
+  var isSyncing = false;
+  var showEmaOverlay = true;
+  var showAiLevelsOverlay = true;
+  var activeTvChart = null;
+  var chartHistoryCache = {};
 
-    var globals = [window.Graph, window.graph, window.knowledgeGraph, window.fg, window.graph3d];
-    for (var i = 0; i < globals.length; i++) {
-      if (globals[i] && typeof globals[i].graphData === 'function') {
-        cachedGraph = globals[i];
-        return cachedGraph;
-      }
+  var ENTITY_TYPES = [
+    { key: 'AI_PASS',    label: 'AI COMMITTEE PASS', shape: 'star',     glyph: '★', color: '#facc15', checked: true },
+    { key: 'SECTOR',     label: 'SECTOR HUB',        shape: 'square',   glyph: '■', color: '#10b981', checked: true },
+    { key: 'HYDRO',      label: 'HYDRO POWER',       shape: 'triangle', glyph: '▲', color: '#06b6d4', checked: true },
+    { key: 'BANK',       label: 'COMMERCIAL BANK',   shape: 'diamond',  glyph: '◆', color: '#3b82f6', checked: true },
+    { key: 'MICRO',      label: 'MICROFINANCE',      shape: 'circle',   glyph: '●', color: '#a855f7', checked: true },
+    { key: 'INSURANCE',  label: 'INSURANCE & FIN',   shape: 'star',     glyph: '★', color: '#ec4899', checked: true },
+    { key: 'CORP_OTHER', label: 'DEV BANK / MFG',    shape: 'triangle', glyph: '▲', color: '#f97316', checked: true },
+    { key: 'METRIC',     label: 'SIGNAL / METRIC',   shape: 'circle',   glyph: '●', color: '#64748b', checked: true }
+  ];
+
+  var kg = {
+    nodes: [],
+    edges: [],
+    visibleNodes: [],
+    visibleEdges: [],
+    hoveredNode: null,
+    searchQuery: '',
+    searchMode: 'highlight',
+    sectorFilter: 'ALL',
+    sourceMode: 'graphdb',
+    layoutSeed: 1
+  };
+
+  var g3d = {
+    initialized: false,
+    renderer: null,
+    scene: null,
+    camera: null,
+    worldGroup: null,
+    raycaster: null,
+    mouseNDC: null,
+    shapeMeshes: {},
+    shapeInstanceMaps: {},
+    edgeLines: null,
+    highlightEdgeLines: null,
+    passHalos: null,
+    labelSprites: [],
+    theta: 0.25,
+    phi: 1.38,
+    velTheta: 0,
+    velPhi: 0,
+    radius: 560,
+    targetX: 0,
+    targetY: 0,
+    targetZ: 0,
+    autoOrbit360: true,
+    dragMode: null,
+    dragLast: { x: 0, y: 0, moved: false },
+    lastFrameMs: 0,
+    animating: false
+  };
+
+  function syncVoiceUI() {
+    var btns = [
+      document.getElementById('kg-voice-master-top'),
+      document.getElementById('jcb-mute-toggle-btn'),
+      document.getElementById('jarvis-dock-mute-btn')
+    ];
+    for (var i = 0; i < btns.length; i++) {
+      if (!btns[i]) continue;
+      btns[i].textContent = isVoiceEnabled ? '🔊 Voice: ON' : '🔇 Voice: OFF';
+      btns[i].classList.toggle('is-on', isVoiceEnabled);
+      btns[i].classList.toggle('is-off', !isVoiceEnabled);
     }
-
-    var divs = document.querySelectorAll('div');
-    for (var d = 0; d < divs.length; d++) {
-      var el = divs[d];
-      if (el.__kapsuleInstance && typeof el.__kapsuleInstance.graphData === 'function') {
-        cachedGraph = el.__kapsuleInstance;
-        window.Graph = cachedGraph;
-        return cachedGraph;
-      }
-      var keys = Object.keys(el);
-      for (var k = 0; k < keys.length; k++) {
-        var prop = el[keys[k]];
-        if (prop && typeof prop === 'function' && typeof prop.graphData === 'function' && typeof prop.cameraPosition === 'function') {
-          cachedGraph = prop;
-          window.Graph = cachedGraph;
-          return cachedGraph;
-        }
-      }
-    }
-    return null;
+    var ni = document.getElementById('kg-nav-voice-icon');
+    var nl = document.getElementById('kg-nav-voice-label');
+    if (ni) ni.textContent = isVoiceEnabled ? '🔊' : '🔇';
+    if (nl) nl.textContent = isVoiceEnabled ? 'Voice: ON' : 'Voice: OFF';
   }
 
-  function postToShell(payload) {
-    if (isEmbeddedInShell) {
-      try { window.parent.postMessage(payload, '*'); } catch (e) {}
+  function setVoiceEnabled(flag) {
+    isVoiceEnabled = !!flag;
+    if (!isVoiceEnabled) {
+      briefingToken++;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     }
+    syncVoiceUI();
   }
 
-  // Notify parent voice shell when F.R.I.D.A.Y. is speaking so her voice never triggers commands
-  var lastSpeaking = false;
-  setInterval(function() {
-    var speaking = Boolean(window.__fridayIsSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking));
-    if (speaking !== lastSpeaking) {
-      lastSpeaking = speaking;
-      postToShell({ type: 'JARVIS_AI_SPEAKING', speaking: speaking });
-    }
-  }, 100);
-
-  function speakReply(msg) {
-    var subTag = document.getElementById('friday-subtitle-tag');
-    var subText = document.getElementById('friday-subtitle-text');
-    if (subTag) subTag.textContent = '[F.R.I.D.A.Y. · VOICE]';
-    if (subText) subText.textContent = msg;
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(msg);
-      window.speechSynthesis.speak(u);
-    }
-  }
-
-  function updateDockButtons() {
-    var micBtn = document.getElementById('jarvis-mic-btn');
-    var closeBtn = document.getElementById('jarvis-mic-close-btn');
-    if (micBtn) {
-      micBtn.classList.toggle('active', isVoiceOpen);
-      micBtn.innerHTML = isVoiceOpen ? '● VOICE ON' : '🎙️ VOICE';
-    }
-    if (closeBtn) {
-      closeBtn.style.display = isVoiceOpen ? 'inline-flex' : 'none';
-    }
-  }
-
-  // 2. Real 3D Knowledge Graph & HUD Action Helpers
-  function getGraphNodes() {
-    var g = resolveGraphInstance();
-    if (!g || typeof g.graphData !== 'function') return [];
-    var data = g.graphData();
-    return (data && data.nodes) || [];
-  }
-
-  function getStockNodes() {
-    return getGraphNodes().filter(function(n) {
-      var sig = String(n.signal || '').toUpperCase();
-      var grp = String(n.group || n.type || n.category || '').toLowerCase();
-      return sig === 'BUY' || sig === 'WATCH' || sig === 'SELL' ||
-             grp.indexOf('stock') > -1 || grp.indexOf('ticker') > -1 ||
-             typeof n.ltp !== 'undefined' || typeof n.target !== 'undefined';
-    });
-  }
-
-  function triggerRealClick(el) {
-    if (!el) return;
-    ['pointerdown', 'mousedown', 'mouseup', 'click'].forEach(function(evtName) {
-      el.dispatchEvent(new MouseEvent(evtName, { bubbles: true, cancelable: true, view: window }));
-    });
-  }
-
-  function clickButtonMatching(keywords) {
-    var nodes = document.querySelectorAll('button, [role="button"], a');
-    for (var i = 0; i < nodes.length; i++) {
-      var txt = (nodes[i].textContent || '').trim().toUpperCase();
-      if (!txt || nodes[i].id === 'jarvis-mic-btn' || nodes[i].id === 'jarvis-mic-close-btn') continue;
-      for (var k = 0; k < keywords.length; k++) {
-        if (txt.indexOf(keywords[k]) > -1) {
-          triggerRealClick(nodes[i]);
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  function ensureVisorEngaged() {
-    var helmetBtn = document.getElementById('friday-helmet-btn');
-    if (helmetBtn && helmetBtn.textContent.toUpperCase().indexOf('HELMET ON') > -1) {
-      triggerRealClick(helmetBtn);
+  function speakText(msg, onDone) {
+    if (!isVoiceEnabled || !('speechSynthesis' in window)) {
+      if (typeof onDone === 'function') setTimeout(onDone, 2500);
       return;
     }
-    clickButtonMatching(['HELMET ON', 'ENGAGE HELMET', 'ENGAGE VISOR']);
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(msg);
+    u.lang = 'en-IN';
+    u.rate = 0.95;
+    var done = false;
+    function finish() { if (done) return; done = true; if (typeof onDone === 'function') onDone(); }
+    u.onend = finish;
+    u.onerror = finish;
+    setTimeout(finish, Math.max(2600, msg.length * 70));
+    window.speechSynthesis.speak(u);
   }
 
-  function focusAndActivateNode(node, openChart) {
-    if (!node) return;
-    var g = resolveGraphInstance();
-    var ticker = String(node.ticker || node.name || node.label || node.id || '').toUpperCase();
-
-    // Highlight node reticle
-    window.dispatchEvent(new CustomEvent('friday:brainHighlight', {
-      detail: { keywords: [ticker, node.id, node.name], color: '#00f5d4', isFinal: true }
-    }));
-
-    // Fly 3D camera onto node coordinates
-    if (g && typeof g.cameraPosition === 'function' && typeof node.x === 'number') {
-      var dist = 88;
-      var hypot = Math.hypot(node.x, node.y, node.z) || 1;
-      var ratio = 1 + dist / hypot;
-      g.cameraPosition(
-        { x: node.x * ratio, y: node.y * ratio, z: node.z * ratio },
-        { x: node.x, y: node.y, z: node.z },
-        750
-      );
-    }
-
-    // Fire ForceGraph3D's native onNodeClick handler
-    if (g && typeof g.onNodeClick === 'function') {
-      var handler = g.onNodeClick();
-      if (typeof handler === 'function') {
-        try {
-          handler(node, new MouseEvent('click', { bubbles: true }));
-        } catch (e) {
-          handler(node);
-        }
-      }
-    }
-
-    if (openChart) {
-      ensureVisorEngaged();
-      setTimeout(function() {
-        clickButtonMatching(['SPLIT', 'LIVE CHART', 'CHART']);
-      }, 150);
-    }
+  function getNptString() {
+    var npt = new Date(Date.now() + 345 * 60000);
+    var pad = function(n) { return n < 10 ? '0' + n : String(n); };
+    return 'NPT ' + pad(npt.getUTCHours()) + ':' + pad(npt.getUTCMinutes()) + ':' + pad(npt.getUTCSeconds());
   }
 
-  // 3. Execute Spoken Task Immediately
-  function executeVoiceCommand(rawText) {
-    var cmd = String(rawText || '').trim();
-    var lower = cmd.toLowerCase();
-    if (!lower) return;
-
-    var stocks = getStockNodes();
-    var allNodes = getGraphNodes();
-
-    // Match any spoken stock ticker
-    var mentionedStock = null;
-    for (var i = 0; i < stocks.length; i++) {
-      var sym = String(stocks[i].ticker || stocks[i].name || stocks[i].id || '').toLowerCase().trim();
-      if (sym && sym.length >= 2 && new RegExp('\\b' + sym.replace(/[^a-z0-9]/g, '') + '\\b', 'i').test(lower)) {
-        mentionedStock = stocks[i];
-        break;
-      }
-    }
-
-    // TASK 1: Open Chart
-    if (/\b(chart|graph|candle|nepsealpha|tradingview)\b/.test(lower)) {
-      var target = mentionedStock ||
-        stocks.find(function(s) { return String(s.signal || '').toUpperCase() === 'BUY'; }) ||
-        stocks[0];
-
-      ensureVisorEngaged();
-      clickButtonMatching(['SPLIT', 'LIVE']);
-
-      if (target) {
-        var symName = String(target.ticker || target.name || target.id).toUpperCase();
-        focusAndActivateNode(target, true);
-        speakReply('Opening live chart for ' + symName + ', Raju D. sir.');
+  function updateClock() {
+    var npt = new Date(Date.now() + 345 * 60000);
+    var day = npt.getUTCDay(); // 0=Sun, 1=Mon .. 5=Fri, 6=Sat
+    var mins = npt.getUTCHours() * 60 + npt.getUTCMinutes();
+    var isTradingDay = (day >= 1 && day <= 5);
+    var badge = document.getElementById('jlh-market-badge');
+    var clock = document.getElementById('jlh-npt-clock');
+    if (clock) clock.textContent = getNptString();
+    if (badge) {
+      if (isTradingDay && mins >= 660 && mins < 900) {
+        badge.textContent = '● NEPSE LIVE';
+        badge.className = 'is-live';
+      } else if (isTradingDay && mins >= 630 && mins < 660) {
+        badge.textContent = '◐ NEPSE PRE-OPEN';
+        badge.className = 'is-pre';
+      } else if (day === 6 || day === 0) {
+        badge.textContent = '○ NEPSE CLOSED (SAT/SUN)';
+        badge.className = 'is-closed';
       } else {
-        speakReply('Engaging visor chart view, Raju D. sir.');
+        badge.textContent = '○ NEPSE CLOSED';
+        badge.className = 'is-closed';
       }
+    }
+  }
+
+  var NEPSE_SECTOR_DIRECTORY = {
+    'Commercial Banks': ['NABIL','NIMB','SCB','HBL','SBI','EBL','NICA','MBL','LSL','KBL','SBL','SANIMA','PRVU','GBIME','CZBIL','PCBL','NBL','ADBL','RBB'],
+    'Development Banks': ['MNBBL','GBBL','JBBL','KSBBL','LBBL','MLBL','SHINE','SADBL','SINDU','CORBL','EDBL','GRDBL'],
+    'Finance': ['ICFC','MFIL','GFCL','GMFIL','CFCL','BFC','GUFL','JFL','MPFL','NFS','PFL','PROFL','RLFL'],
+    'Microfinance': ['CBBL','DDBL','FMDBL','FOWAD','NUBL','SKBBL','SLBBL','SMATA','SWBBL','NICLBSL','GILB','GLBSL','MERO','MLBBL'],
+    'Life Insurance': ['NLIC','NLICL','LICN','ALICL','SJLIC','ILI','CLI','HLI','PMLI','GMLI','RNLI','SNLI','SRLI'],
+    'Non Life Insurance': ['IGI','NICL','NIL','NLGI','PRIN','RBCL','SALICO','SICL','HEI','SGIC','SPIL','UAIC'],
+    'Hydro Power': ['AHPC','AKJCL','AKPL','API','BARUN','BPCL','CHCL','CHDC','GHL','HDHPC','HPPL','HURJA','MANDU','MEN','MHCL','NGPL','NHDL','NHPC','RADHI','RIDI','SAHAS','SHPC','SJCL','SPC','UMHL','UPCL','UPPER','TAMOR','BGWT','DOLTI'],
+    'Manufacturing And Processing': ['SHIVM','HDL','SARBTM','SONA','GHORAHI','UNL','BNL','BNT'],
+    'Hotels And Tourism': ['OHL','SHL','TRH','CGH','CITY','KDL'],
+    'Investment': ['CIT','HATHY','HIDCL','NIFRA','NRN'],
+    'Tradings': ['BBC','STC'],
+    'Others': ['NTC','NRIC','MKCL','NWCL']
+  };
+
+  function getMergedStocks() {
+    var rawSetups = (liveRawData && Array.isArray(liveRawData.setups)) ? liveRawData.setups : [];
+    var byTicker = {};
+    var ordered = [];
+
+    for (var i = 0; i < rawSetups.length; i++) {
+      var s = rawSetups[i];
+      var sym = String(s.ticker || '').toUpperCase().trim();
+      if (!sym || byTicker[sym]) continue;
+
+      var sig = String(s.signal || 'SCAN').toUpperCase();
+      var ltp = s.ltp !== undefined && s.ltp !== null && s.ltp !== '' ? Number(s.ltp) : null;
+      var sl = s.stop_loss !== undefined && s.stop_loss !== null && s.stop_loss !== '' ? Number(s.stop_loss) : null;
+      var tgt = s.target !== undefined && s.target !== null && s.target !== '' ? Number(s.target) : null;
+      var kelly = s.kelly_pct !== undefined && s.kelly_pct !== null && s.kelly_pct !== '' ? Number(s.kelly_pct) : 0;
+      var rr = (ltp && sl && tgt && ltp > sl) ? ((tgt - ltp) / (ltp - sl)) : 0;
+      var isPass = (sig === 'BUY' || sig === 'BREAKOUT' || sig === 'ACCUM' || sig === 'WATCH' || !!s.in_portfolio);
+
+      var entry = {
+        ticker: sym,
+        sector: s.sector || 'NEPSE',
+        signal: sig,
+        ltp: ltp,
+        open: Number(s.open || ltp || 0),
+        high: Number(s.high || ltp || 0),
+        low: Number(s.low || ltp || 0),
+        prev_close: Number(s.prev_close || ltp || 0),
+        vwap: Number(s.vwap || ltp || 0),
+        pct_change: Number(s.pct_change || 0),
+        avg_turnover_20d: Number(s.avg_turnover_20d || 0),
+        entry_zone: s.entry_zone || (ltp ? String(ltp) : '—'),
+        stop_loss: sl,
+        target: tgt,
+        kelly_pct: kelly,
+        rr_ratio: rr,
+        bull_case: s.bull_case || '',
+        bear_case: s.bear_case || '',
+        risk_flag: s.risk_flag || 'AUTO_VERIFIED',
+        macro_approved: Number(s.macro_approved || 0),
+        in_portfolio: !!s.in_portfolio,
+        fromSheet: true,
+        isPass: isPass
+      };
+      byTicker[sym] = entry;
+      ordered.push(entry);
+    }
+
+    Object.keys(NEPSE_SECTOR_DIRECTORY).forEach(function(secName) {
+      NEPSE_SECTOR_DIRECTORY[secName].forEach(function(code) {
+        if (byTicker[code]) return;
+        var uEntry = {
+          ticker: code,
+          sector: secName,
+          signal: 'UNIVERSE',
+          ltp: null,
+          open: 0, high: 0, low: 0, prev_close: 0, vwap: 0, pct_change: 0,
+          avg_turnover_20d: 0,
+          entry_zone: '—',
+          stop_loss: null,
+          target: null,
+          kelly_pct: 0,
+          rr_ratio: 0,
+          bull_case: 'Listed NEPSE security',
+          bear_case: '',
+          risk_flag: 'MONITORING',
+          macro_approved: 0,
+          in_portfolio: false,
+          fromSheet: false,
+          isPass: false
+        };
+        byTicker[code] = uEntry;
+        ordered.push(uEntry);
+      });
+    });
+
+    return ordered;
+  }
+
+  function getAiPassStocks() {
+    return getMergedStocks()
+      .filter(function(s) { return s.isPass; })
+      .sort(function(a, b) { return (b.kelly_pct - a.kelly_pct) || (b.avg_turnover_20d - a.avg_turnover_20d); });
+  }
+
+  function renderInvestmentBriefingDrawer() {
+    var winners = getAiPassStocks();
+    var cntEl = document.getElementById('kg-brief-count');
+    var listEl = document.getElementById('kg-brief-list');
+    if (cntEl) cntEl.textContent = winners.length;
+    if (!listEl) return;
+
+    if (winners.length === 0) {
+      listEl.innerHTML = '<div style="font-size:11.5px;color:#94a3b8;padding:6px;">Syncing live NEPSE quotes... Click <strong>Sync Now</strong> if empty.</div>';
       return;
     }
 
-    // TASK 2: Show Backtesting
-    if (/\b(backtest|backtesting|accuracy|pga|cascade)\b/.test(lower)) {
-      ensureVisorEngaged();
-      if (lower.indexOf('cascade') > -1) clickButtonMatching(['CASCADE']);
-      else if (lower.indexOf('pga') > -1) clickButtonMatching(['PGA-BB', 'PGA']);
-      else clickButtonMatching(['COMBINED', 'BACKTEST']);
+    listEl.innerHTML = winners.slice(0, 20).map(function(st) {
+      var kellyDisplay = st.kelly_pct > 0 ? ((st.kelly_pct <= 1 ? st.kelly_pct * 100 : st.kelly_pct).toFixed(1) + '%') : '5.0%';
+      return '<div class="kg-pick-card" data-brief-sym="' + st.ticker + '">' +
+        '<div class="kg-pick-top">' +
+          '<span style="color:#f8fafc;">★ ' + st.ticker + ' <span style="font-size:10px;color:#94a3b8;font-weight:500;">(' + st.sector + ')</span></span>' +
+          '<span class="kg-pick-badge">' + st.signal + ' · Kelly ' + kellyDisplay + '</span>' +
+        '</div>' +
+        '<div class="kg-pick-metrics">' +
+          '<div><span style="color:#64748b;">LTP:</span> <strong>' + (st.ltp ? 'Rs ' + st.ltp : '—') + '</strong></div>' +
+          '<div><span style="color:#64748b;">SL:</span> <strong style="color:#f87171;">' + (st.stop_loss ? 'Rs ' + st.stop_loss : '—') + '</strong></div>' +
+          '<div><span style="color:#64748b;">Target:</span> <strong style="color:#34d399;">' + (st.target ? 'Rs ' + st.target : '—') + '</strong></div>' +
+        '</div>' +
+        (st.bull_case ? '<div class="kg-pick-note">' + st.bull_case + '</div>' : '') +
+      '</div>';
+    }).join('');
 
-      var btPanel = document.getElementById('backtest-panel') || document.querySelector('[class*="backtest"]');
-      if (btPanel) btPanel.style.display = 'block';
+    var cards = listEl.querySelectorAll('[data-brief-sym]');
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].addEventListener('click', function() {
+        openTradePlanChart(this.getAttribute('data-brief-sym'));
+      });
+    }
+  }
 
-      speakReply('Displaying backtesting results on your visor, Raju D. sir.');
+  function startAutoInvestmentBriefing() {
+    var winners = getAiPassStocks().slice(0, 5);
+    if (winners.length === 0) {
+      triggerAutonomousCloudSync(true);
       return;
     }
 
-    // TASK 3: Show Top Leads Today
-    if (/\b(top lead|top leads|leads|top stock|best stock|buy signal|today)\b/.test(lower)) {
-      var buys = stocks.filter(function(s) { return String(s.signal || '').toUpperCase() === 'BUY'; });
-      var ranked = (buys.length > 0 ? buys : stocks).slice().sort(function(a, b) {
-        return (Number(b.rr_ratio || b.rr || 0)) - (Number(a.rr_ratio || a.rr || 0));
+    briefingToken++;
+    var tok = briefingToken;
+    var drawer = document.getElementById('kg-briefing-drawer');
+    if (drawer) drawer.classList.remove('collapsed');
+
+    function step(idx) {
+      if (tok !== briefingToken || idx >= winners.length) return;
+      var st = winners[idx];
+      openTradePlanChart(st.ticker);
+      var kellyPct = st.kelly_pct > 0 ? (st.kelly_pct <= 1 ? (st.kelly_pct * 100).toFixed(1) : st.kelly_pct.toFixed(1)) : '5.0';
+      var speech = 'Pick ' + (idx + 1) + ': ' + st.ticker + ', ' + st.signal + ' at rupees ' + (st.ltp || '') +
+        ', stop loss ' + (st.stop_loss || '') + ', target ' + (st.target || '') + ', Kelly allocation ' + kellyPct + ' percent.';
+
+      speakText(speech, function() {
+        if (tok !== briefingToken) return;
+        setTimeout(function() { step(idx + 1); }, 1200);
+      });
+    }
+
+    step(0);
+  }
+
+  // =========================================================================
+  // 3D 360° KNOWLEDGE GRAPH ENGINE
+  // =========================================================================
+  function seededRand(seed) {
+    var x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function mapStockToEntityType(st) {
+    if (st.isPass) return 'AI_PASS';
+    if (st.sector === 'Hydro Power') return 'HYDRO';
+    if (st.sector === 'Commercial Banks') return 'BANK';
+    if (st.sector === 'Microfinance') return 'MICRO';
+    if (st.sector === 'Life Insurance' || st.sector === 'Non Life Insurance' || st.sector === 'Finance') return 'INSURANCE';
+    return 'CORP_OTHER';
+  }
+
+  function getEntityTypeMeta(typeKey) {
+    for (var i = 0; i < ENTITY_TYPES.length; i++) {
+      if (ENTITY_TYPES[i].key === typeKey) return ENTITY_TYPES[i];
+    }
+    return ENTITY_TYPES[ENTITY_TYPES.length - 1];
+  }
+
+  function build3DKnowledgeGraph() {
+    var allStocks = getMergedStocks();
+    var sectorNames = Object.keys(NEPSE_SECTOR_DIRECTORY);
+    var seedOffset = kg.layoutSeed * 97;
+    var nodes = [];
+    var edges = [];
+
+    var secSel = document.getElementById('kg-sector-filter');
+    if (secSel && secSel.options.length <= 1) {
+      sectorNames.forEach(function(sn) {
+        var opt = document.createElement('option');
+        opt.value = sn;
+        opt.textContent = sn;
+        secSel.appendChild(opt);
+      });
+    }
+
+    var hubAnchors = {
+      'Hydro Power': { x: 135, y: 110, z: 95 },
+      'Commercial Banks': { x: -125, y: 105, z: -90 },
+      'Microfinance': { x: -65, y: -135, z: 115 },
+      'Life Insurance': { x: 175, y: -35, z: -110 },
+      'Non Life Insurance': { x: 110, y: -145, z: -75 },
+      'Development Banks': { x: -165, y: -25, z: 85 },
+      'Finance': { x: 195, y: 135, z: -65 },
+      'Manufacturing And Processing': { x: 0, y: 15, z: 0 },
+      'Hotels And Tourism': { x: -175, y: 145, z: 65 },
+      'Investment': { x: 185, y: -125, z: 105 },
+      'Tradings': { x: -145, y: -155, z: -105 },
+      'Others': { x: 45, y: -65, z: 145 }
+    };
+
+    var hubNodes = {};
+    sectorNames.forEach(function(secName, idx) {
+      var base = hubAnchors[secName] || { x: 0, y: 0, z: 0 };
+      var hub = {
+        id: 'HUB_' + secName,
+        label: secName.toUpperCase(),
+        entityType: 'SECTOR',
+        sector: secName,
+        x: base.x + (seededRand(idx + seedOffset) - 0.5) * 32,
+        y: base.y + (seededRand(idx + seedOffset + 17) - 0.5) * 32,
+        z: base.z + (seededRand(idx + seedOffset + 43) - 0.5) * 32,
+        radius: 7.5,
+        stockData: null
+      };
+      nodes.push(hub);
+      hubNodes[secName] = hub;
+    });
+
+    for (var h1 = 0; h1 < sectorNames.length; h1++) {
+      for (var h2 = h1 + 1; h2 < sectorNames.length; h2++) {
+        if ((h1 + h2) % 2 === 0 || h1 === 0 || h1 === 7) {
+          edges.push({ source: hubNodes[sectorNames[h1]], target: hubNodes[sectorNames[h2]], kind: 'backbone' });
+        }
+      }
+    }
+
+    var stocksBySector = {};
+    var stockNodes = [];
+
+    allStocks.forEach(function(st, idx) {
+      var eType = mapStockToEntityType(st);
+      var isPass = (eType === 'AI_PASS');
+      var hub = hubNodes[st.sector] || hubNodes['Others'];
+
+      var r1 = seededRand(idx * 5 + seedOffset + 3);
+      var r2 = seededRand(idx * 5 + seedOffset + 19);
+      var r3 = seededRand(idx * 5 + seedOffset + 41);
+      var theta = r1 * Math.PI * 2;
+      var cosPhi = 1 - 2 * r2;
+      var sinPhi = Math.sqrt(Math.max(0, 1 - cosPhi * cosPhi));
+      var spread = isPass ? (42 + r3 * 60) : (35 + r3 * 115);
+
+      var sNode = {
+        id: 'STK_' + st.ticker,
+        label: st.ticker,
+        entityType: eType,
+        sector: st.sector,
+        x: isPass ? (Math.sin(theta) * sinPhi * spread) : (hub.x + Math.sin(theta) * sinPhi * spread),
+        y: isPass ? (25 + cosPhi * spread) : (hub.y + cosPhi * spread),
+        z: isPass ? (Math.cos(theta) * sinPhi * spread) : (hub.z + Math.cos(theta) * sinPhi * spread),
+        radius: isPass ? 5.8 : 3.5,
+        stockData: st
+      };
+      nodes.push(sNode);
+      stockNodes.push(sNode);
+
+      if (!stocksBySector[st.sector]) stocksBySector[st.sector] = [];
+      stocksBySector[st.sector].push(sNode);
+
+      edges.push({ source: sNode, target: hub, kind: isPass ? 'pass' : 'sector' });
+    });
+
+    Object.keys(stocksBySector).forEach(function(sec) {
+      var list = stocksBySector[sec];
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        var b = list[(i + 1) % list.length];
+        if (a !== b) edges.push({ source: a, target: b, kind: 'peer' });
+      }
+    });
+
+    var subTags = ['TECH_RR', 'NRB_LIQ', 'KELLY_CAP', 'VOL_20D', 'BETA_IDX'];
+    var subColors = ['#06b6d4', '#10b981', '#a855f7', '#ec4899', '#f97316'];
+    var subShapes = ['triangle', 'square', 'circle', 'star', 'diamond'];
+
+    for (var sIdx = 0; sIdx < stockNodes.length; sIdx++) {
+      var parent = stockNodes[sIdx];
+      var satCount = parent.entityType === 'AI_PASS' ? 6 : 5;
+      for (var k = 0; k < satCount; k++) {
+        var satSeed = sIdx * 23 + k * 11 + seedOffset;
+        var ang = seededRand(satSeed) * Math.PI * 2;
+        var cosP = 1 - 2 * seededRand(satSeed + 5);
+        var sinP = Math.sqrt(Math.max(0, 1 - cosP * cosP));
+        var dist = 14 + seededRand(satSeed + 9) * 28;
+        var satNode = {
+          id: 'MET_' + parent.label + '_' + k,
+          label: parent.label + ':' + subTags[k % subTags.length],
+          entityType: 'METRIC',
+          subColor: subColors[(sIdx + k) % subColors.length],
+          subShape: subShapes[(sIdx + k) % subShapes.length],
+          sector: parent.sector,
+          x: parent.x + Math.sin(ang) * sinP * dist,
+          y: parent.y + cosP * dist,
+          z: parent.z + Math.cos(ang) * sinP * dist,
+          radius: 2.0,
+          stockData: parent.stockData
+        };
+        nodes.push(satNode);
+        edges.push({ source: parent, target: satNode, kind: 'metric' });
+      }
+    }
+
+    kg.nodes = nodes;
+    kg.edges = edges;
+    renderInvestmentBriefingDrawer();
+    applyFiltersAndRender3D();
+  }
+
+  function applyFiltersAndRender3D() {
+    var allowed = {};
+    ENTITY_TYPES.forEach(function(t) { if (t.checked) allowed[t.key] = true; });
+    var q = (kg.searchQuery || '').trim().toLowerCase();
+    var secFilter = kg.sectorFilter || 'ALL';
+    var sheetOnly = (kg.sourceMode === 'sheet');
+
+    var visNodes = [];
+    var visSet = {};
+    for (var i = 0; i < kg.nodes.length; i++) {
+      var n = kg.nodes[i];
+      if (!allowed[n.entityType]) continue;
+      if (secFilter !== 'ALL' && n.sector !== secFilter) continue;
+      if (sheetOnly && n.stockData && !n.stockData.fromSheet && n.entityType !== 'SECTOR') continue;
+      if (q && kg.searchMode === 'filter' && (n.label.toLowerCase().indexOf(q) === -1 && n.sector.toLowerCase().indexOf(q) === -1)) continue;
+      visNodes.push(n);
+      visSet[n.id] = true;
+    }
+
+    var visEdges = [];
+    for (var j = 0; j < kg.edges.length; j++) {
+      var ed = kg.edges[j];
+      if (visSet[ed.source.id] && visSet[ed.target.id]) visEdges.push(ed);
+    }
+
+    kg.visibleNodes = visNodes;
+    kg.visibleEdges = visEdges;
+
+    var subEl = document.getElementById('kg-stats-subtitle');
+    if (subEl) subEl.textContent = visNodes.length.toLocaleString() + ' entities · ' + visEdges.length.toLocaleString() + ' relationships';
+    var ratioEl = document.getElementById('kg-ctrl-ratio');
+    if (ratioEl) ratioEl.textContent = visNodes.length + '/' + kg.nodes.length;
+
+    var passCount = getAiPassStocks().length;
+    var pillEl = document.getElementById('jarvis-status-pill');
+    if (pillEl) pillEl.textContent = '3D 360° · ' + passCount + ' AI PASS / ' + visNodes.length + ' ENTITIES';
+
+    renderEntityCheckboxes();
+    rebuild3DWebGL();
+  }
+
+  function renderEntityCheckboxes() {
+    var container = document.getElementById('kg-entity-type-list');
+    if (!container) return;
+    var counts = {};
+    ENTITY_TYPES.forEach(function(t) { counts[t.key] = 0; });
+    kg.nodes.forEach(function(n) { if (counts[n.entityType] !== undefined) counts[n.entityType]++; });
+
+    container.innerHTML = ENTITY_TYPES.map(function(t) {
+      return '<label class="kg-type-row">' +
+        '<span class="kg-type-left">' +
+          '<input type="checkbox" data-etype="' + t.key + '"' + (t.checked ? ' checked' : '') + ' />' +
+          '<span class="kg-shape-glyph" style="color:' + t.color + ';">' + t.glyph + '</span>' +
+          '<span>' + t.label + '</span>' +
+        '</span>' +
+        '<span class="kg-type-cnt">' + (counts[t.key] || 0) + '</span>' +
+      '</label>';
+    }).join('');
+
+    var boxes = container.querySelectorAll('input[data-etype]');
+    for (var i = 0; i < boxes.length; i++) {
+      boxes[i].addEventListener('change', function() {
+        var k = this.getAttribute('data-etype');
+        for (var j = 0; j < ENTITY_TYPES.length; j++) {
+          if (ENTITY_TYPES[j].key === k) ENTITY_TYPES[j].checked = this.checked;
+        }
+        applyFiltersAndRender3D();
+      });
+    }
+  }
+
+  function createBillboardLabel(text, colorHex, isHighlight) {
+    var c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 56;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = isHighlight ? 'rgba(15, 23, 42, 0.94)' : 'rgba(17, 20, 28, 0.86)';
+    ctx.strokeStyle = colorHex || '#38bdf8';
+    ctx.lineWidth = isHighlight ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.roundRect(14, 8, 228, 40, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = colorHex || '#f8fafc';
+    ctx.font = 'bold 20px Inter, Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 128, 28);
+    var tex = new THREE.CanvasTexture(c);
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+    sp.scale.set(34, 7.5, 1);
+    return sp;
+  }
+
+  function createGlowTex() {
+    var c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 128;
+    var ctx = c.getContext('2d');
+    var grad = ctx.createRadialGradient(64, 64, 2, 64, 64, 62);
+    grad.addColorStop(0.0, 'rgba(255, 250, 205, 1)');
+    grad.addColorStop(0.35, 'rgba(250, 204, 21, 0.65)');
+    grad.addColorStop(1.0, 'rgba(250, 204, 21, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  }
+
+  function updateCameraOffset() {
+    if (!g3d.initialized || !g3d.camera) return;
+    var container = document.getElementById('graph3d');
+    if (!container) return;
+    var w = container.clientWidth || window.innerWidth;
+    var h = container.clientHeight || window.innerHeight;
+    g3d.camera.aspect = w / h;
+    g3d.camera.setViewOffset(w, h, -40, 0, w, h);
+    g3d.camera.updateProjectionMatrix();
+    g3d.renderer.setSize(w, h);
+  }
+
+  function rebuild3DWebGL() {
+    var canvas = document.getElementById('kg-3d-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    if (!g3d.initialized) {
+      var container = document.getElementById('graph3d');
+      var w = (container && container.clientWidth) || window.innerWidth;
+      var h = (container && container.clientHeight) || window.innerHeight;
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+      renderer.setSize(w, h);
+      renderer.setClearColor(0x000000, 0);
+
+      var scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x111318, 0.00055);
+      var camera = new THREE.PerspectiveCamera(46, w / h, 1, 3500);
+      var worldGroup = new THREE.Group();
+      scene.add(worldGroup);
+
+      g3d.renderer = renderer;
+      g3d.scene = scene;
+      g3d.camera = camera;
+      g3d.worldGroup = worldGroup;
+      g3d.raycaster = new THREE.Raycaster();
+      g3d.mouseNDC = new THREE.Vector2();
+      g3d.initialized = true;
+      updateCameraOffset();
+      wireCanvasEvents(canvas);
+    }
+
+    var world = g3d.worldGroup;
+    Object.keys(g3d.shapeMeshes).forEach(function(k) {
+      var m = g3d.shapeMeshes[k];
+      if (m) { world.remove(m); if (m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); }
+    });
+    g3d.shapeMeshes = {};
+    g3d.shapeInstanceMaps = {};
+
+    [g3d.edgeLines, g3d.highlightEdgeLines, g3d.passHalos].forEach(function(obj) {
+      if (!obj) return;
+      world.remove(obj);
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+    g3d.edgeLines = null;
+    g3d.highlightEdgeLines = null;
+    g3d.passHalos = null;
+
+    g3d.labelSprites.forEach(function(sp) {
+      world.remove(sp);
+      if (sp.material && sp.material.map) sp.material.map.dispose();
+      if (sp.material) sp.material.dispose();
+    });
+    g3d.labelSprites = [];
+
+    var q = (kg.searchQuery || '').trim().toLowerCase();
+    var isHi = (q.length > 0 && kg.searchMode === 'highlight');
+    var matched = {};
+    if (isHi) {
+      kg.visibleNodes.forEach(function(n) {
+        if (n.label.toLowerCase().indexOf(q) > -1 || n.sector.toLowerCase().indexOf(q) > -1) matched[n.id] = true;
+      });
+    }
+
+    var buckets = { sphere: [], box: [], cone: [], octahedron: [], star: [] };
+    var passNodes = [];
+
+    for (var i = 0; i < kg.visibleNodes.length; i++) {
+      var n = kg.visibleNodes[i];
+      var meta = getEntityTypeMeta(n.entityType);
+      var rawShape = (n.entityType === 'METRIC' && n.subShape) ? n.subShape : meta.shape;
+      var bKey = rawShape === 'square' ? 'box' : (rawShape === 'triangle' ? 'cone' : (rawShape === 'diamond' ? 'octahedron' : (rawShape === 'star' ? 'star' : 'sphere')));
+      buckets[bKey].push(n);
+      if (n.entityType === 'AI_PASS') passNodes.push(n);
+    }
+
+    var geos = {
+      sphere: new THREE.SphereGeometry(1, 14, 12),
+      box: new THREE.BoxGeometry(1.75, 1.75, 1.75),
+      cone: new THREE.ConeGeometry(1.25, 2.2, 4),
+      octahedron: new THREE.OctahedronGeometry(1.35, 0),
+      star: new THREE.DodecahedronGeometry(1.35, 0)
+    };
+
+    var dummy = new THREE.Object3D();
+    var colHelper = new THREE.Color();
+    var hovId = kg.hoveredNode ? kg.hoveredNode.id : null;
+
+    Object.keys(buckets).forEach(function(bKey) {
+      var list = buckets[bKey];
+      if (list.length === 0) return;
+      var instMesh = new THREE.InstancedMesh(geos[bKey], new THREE.MeshBasicMaterial({ color: 0xffffff }), list.length);
+
+      for (var idx = 0; idx < list.length; idx++) {
+        var node = list[idx];
+        var meta = getEntityTypeMeta(node.entityType);
+        var baseHex = (node.entityType === 'METRIC' && node.subColor) ? node.subColor : meta.color;
+        var isM = isHi && matched[node.id];
+        var isH = (hovId === node.id);
+        var mult = (isM || isH) ? 1.55 : 1.0;
+
+        dummy.position.set(node.x, node.y, node.z);
+        dummy.rotation.set((idx % 5) * 0.4, (idx % 7) * 0.5, 0);
+        dummy.scale.set(node.radius * mult, node.radius * mult, node.radius * mult);
+        dummy.updateMatrix();
+        instMesh.setMatrixAt(idx, dummy.matrix);
+
+        colHelper.set(baseHex);
+        if (isHi && !isM) colHelper.multiplyScalar(0.18);
+        else if (isM || isH) colHelper.lerp(new THREE.Color(0xffffff), 0.35);
+        instMesh.setColorAt(idx, colHelper);
+
+        if (node.entityType === 'AI_PASS' || node.entityType === 'SECTOR' || isM || isH) {
+          var lblColor = node.entityType === 'AI_PASS' ? '#fef08a' : (isM || isH ? '#38bdf8' : '#e2e8f0');
+          var sprite = createBillboardLabel(node.label, lblColor, isM || isH || node.entityType === 'AI_PASS');
+          sprite.position.set(node.x, node.y + node.radius * mult + 6.5, node.z);
+          world.add(sprite);
+          g3d.labelSprites.push(sprite);
+        }
+      }
+      instMesh.instanceMatrix.needsUpdate = true;
+      if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
+      world.add(instMesh);
+      g3d.shapeMeshes[bKey] = instMesh;
+      g3d.shapeInstanceMaps[bKey] = list;
+    });
+
+    if (passNodes.length > 0) {
+      var haloPos = new Float32Array(passNodes.length * 3);
+      for (var p = 0; p < passNodes.length; p++) {
+        haloPos[p * 3] = passNodes[p].x;
+        haloPos[p * 3 + 1] = passNodes[p].y;
+        haloPos[p * 3 + 2] = passNodes[p].z;
+      }
+      var haloGeo = new THREE.BufferGeometry();
+      haloGeo.setAttribute('position', new THREE.BufferAttribute(haloPos, 3));
+      g3d.passHalos = new THREE.Points(haloGeo, new THREE.PointsMaterial({
+        size: 30, map: createGlowTex(), color: 0xfacc15, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+      world.add(g3d.passHalos);
+    }
+
+    var baseEdges = [];
+    var brightEdges = [];
+    for (var e = 0; e < kg.visibleEdges.length; e++) {
+      var ed = kg.visibleEdges[e];
+      if (ed.kind === 'pass' || (hovId && (ed.source.id === hovId || ed.target.id === hovId)) || (isHi && (matched[ed.source.id] || matched[ed.target.id]))) {
+        brightEdges.push(ed);
+      } else {
+        baseEdges.push(ed);
+      }
+    }
+
+    if (baseEdges.length > 0) {
+      var bPos = new Float32Array(baseEdges.length * 6);
+      for (var b = 0; b < baseEdges.length; b++) {
+        bPos[b * 6] = baseEdges[b].source.x; bPos[b * 6 + 1] = baseEdges[b].source.y; bPos[b * 6 + 2] = baseEdges[b].source.z;
+        bPos[b * 6 + 3] = baseEdges[b].target.x; bPos[b * 6 + 4] = baseEdges[b].target.y; bPos[b * 6 + 5] = baseEdges[b].target.z;
+      }
+      var bGeo = new THREE.BufferGeometry();
+      bGeo.setAttribute('position', new THREE.BufferAttribute(bPos, 3));
+      g3d.edgeLines = new THREE.LineSegments(bGeo, new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: isHi ? 0.04 : 0.16, depthWrite: false }));
+      world.add(g3d.edgeLines);
+    }
+
+    if (brightEdges.length > 0) {
+      var hPos = new Float32Array(brightEdges.length * 6);
+      for (var h = 0; h < brightEdges.length; h++) {
+        hPos[h * 6] = brightEdges[h].source.x; hPos[h * 6 + 1] = brightEdges[h].source.y; hPos[h * 6 + 2] = brightEdges[h].source.z;
+        hPos[h * 6 + 3] = brightEdges[h].target.x; hPos[h * 6 + 4] = brightEdges[h].target.y; hPos[h * 6 + 5] = brightEdges[h].target.z;
+      }
+      var hGeo = new THREE.BufferGeometry();
+      hGeo.setAttribute('position', new THREE.BufferAttribute(hPos, 3));
+      g3d.highlightEdgeLines = new THREE.LineSegments(hGeo, new THREE.LineBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.72, blending: THREE.AdditiveBlending }));
+      world.add(g3d.highlightEdgeLines);
+    }
+
+    if (!g3d.animating) {
+      g3d.animating = true;
+      requestAnimationFrame(animateLoop);
+    }
+  }
+
+  function animateLoop(nowMs) {
+    if (!g3d.initialized) return;
+    requestAnimationFrame(animateLoop);
+    if (document.hidden || (nowMs - g3d.lastFrameMs) < 30) return;
+    g3d.lastFrameMs = nowMs;
+
+    if (!g3d.dragMode) {
+      if (g3d.autoOrbit360) g3d.theta += 0.0032;
+      g3d.theta += g3d.velTheta;
+      g3d.phi = Math.max(0.16, Math.min(Math.PI - 0.16, g3d.phi + g3d.velPhi));
+      g3d.velTheta *= 0.88;
+      g3d.velPhi *= 0.88;
+    }
+
+    var sinPhi = Math.sin(g3d.phi);
+    g3d.camera.position.set(
+      g3d.targetX + g3d.radius * sinPhi * Math.sin(g3d.theta),
+      g3d.targetY + g3d.radius * Math.cos(g3d.phi),
+      g3d.targetZ + g3d.radius * sinPhi * Math.cos(g3d.theta)
+    );
+    g3d.camera.lookAt(g3d.targetX, g3d.targetY, g3d.targetZ);
+    g3d.renderer.render(g3d.scene, g3d.camera);
+  }
+
+  function wireCanvasEvents(canvas) {
+    if (canvas.__wired360) return;
+    canvas.__wired360 = true;
+
+    function pickNode(clientX, clientY) {
+      var rect = canvas.getBoundingClientRect();
+      g3d.mouseNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      g3d.mouseNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      g3d.raycaster.setFromCamera(g3d.mouseNDC, g3d.camera);
+
+      var best = null;
+      var bestPrio = -1;
+      var bestDist = Infinity;
+      Object.keys(g3d.shapeMeshes).forEach(function(bKey) {
+        var mesh = g3d.shapeMeshes[bKey];
+        var map = g3d.shapeInstanceMaps[bKey];
+        if (!mesh || !map) return;
+        var hits = g3d.raycaster.intersectObject(mesh);
+        for (var i = 0; i < hits.length; i++) {
+          var node = map[hits[i].instanceId];
+          if (!node) continue;
+          var prio = node.entityType === 'AI_PASS' ? 3 : (node.entityType === 'SECTOR' ? 2 : (node.entityType !== 'METRIC' ? 1 : 0));
+          if (prio > bestPrio || (prio === bestPrio && hits[i].distance < bestDist)) {
+            bestPrio = prio;
+            bestDist = hits[i].distance;
+            best = node;
+          }
+        }
+      });
+      return best;
+    }
+
+    canvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    canvas.addEventListener('mousedown', function(e) {
+      g3d.dragMode = (e.button === 2 || e.shiftKey) ? 'pan' : 'rotate';
+      g3d.dragLast = { x: e.clientX, y: e.clientY, moved: false };
+      g3d.velTheta = 0;
+      g3d.velPhi = 0;
+    });
+
+    window.addEventListener('mousemove', function(e) {
+      if (g3d.dragMode) {
+        var dx = e.clientX - g3d.dragLast.x;
+        var dy = e.clientY - g3d.dragLast.y;
+        g3d.dragLast.x = e.clientX;
+        g3d.dragLast.y = e.clientY;
+        if (Math.abs(dx) > 1 || Math.abs(dy) > 1) g3d.dragLast.moved = true;
+        if (g3d.dragMode === 'rotate') {
+          g3d.velTheta = -dx * 0.0072;
+          g3d.velPhi = -dy * 0.0072;
+          g3d.theta += g3d.velTheta;
+          g3d.phi = Math.max(0.16, Math.min(Math.PI - 0.16, g3d.phi + g3d.velPhi));
+        } else {
+          var pan = g3d.radius * 0.0014;
+          g3d.targetX -= dx * Math.cos(g3d.theta) * pan;
+          g3d.targetZ += dx * Math.sin(g3d.theta) * pan;
+          g3d.targetY += dy * pan;
+        }
+        return;
+      }
+
+      var hit = pickNode(e.clientX, e.clientY);
+      if (hit !== kg.hoveredNode) {
+        kg.hoveredNode = hit;
+        rebuild3DWebGL();
+      }
+      canvas.style.cursor = hit ? 'pointer' : 'grab';
+      var tip = document.getElementById('sentinel-node-tooltip');
+      if (tip) {
+        if (!hit) { tip.style.display = 'none'; }
+        else {
+          if (hit.stockData) {
+            var st = hit.stockData;
+            tip.innerHTML = '<div style="font-weight:700;color:#38bdf8;">' + st.ticker + ' · ' + st.signal + '</div>' +
+              '<div style="color:#cbd5e1;margin-top:2px;">LTP: <strong>' + (st.ltp ? 'Rs ' + st.ltp : '—') + '</strong> | SL: ' + (st.stop_loss || '—') + ' | Target: ' + (st.target || '—') + '</div>' +
+              '<div style="color:#94a3b8;margin-top:2px;">' + (st.bull_case || st.sector) + '</div>';
+          } else {
+            tip.innerHTML = '<div style="font-weight:700;color:#10b981;">■ ' + hit.label + '</div>';
+          }
+          tip.style.left = Math.min(window.innerWidth - 295, e.clientX + 14) + 'px';
+          tip.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
+          tip.style.display = 'block';
+        }
+      }
+    });
+
+    window.addEventListener('mouseup', function() { g3d.dragMode = null; });
+    canvas.addEventListener('click', function(e) {
+      if (g3d.dragLast.moved) return;
+      var hit = pickNode(e.clientX, e.clientY);
+      if (!hit) return;
+      if (hit.stockData && hit.stockData.ticker) {
+        openTradePlanChart(hit.stockData.ticker);
+      } else if (hit.entityType === 'SECTOR') {
+        kg.sectorFilter = hit.sector;
+        var secSel = document.getElementById('kg-sector-filter');
+        if (secSel) secSel.value = hit.sector;
+        applyFiltersAndRender3D();
+      }
+    });
+
+    canvas.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      g3d.radius = Math.max(120, Math.min(1600, g3d.radius + e.deltaY * 0.45));
+    }, { passive: false });
+  }
+
+  // =========================================================================
+  // AUTONOMOUS CLOUD SYNC BRIDGE
+  // =========================================================================
+  function triggerAutonomousCloudSync(forceFreshScan) {
+    if (isSyncing) return;
+    isSyncing = true;
+
+    var refBtn = document.getElementById('kg-refresh-btn');
+    var stampEl = document.getElementById('kg-sync-stamp');
+    if (refBtn) refBtn.textContent = '↻ Syncing...';
+    if (stampEl) stampEl.textContent = 'Scanning live NEPSE market across 4 AI Agents...';
+
+    function onDone(payload) {
+      isSyncing = false;
+      if (forceFreshScan) chartHistoryCache = {};
+      if (payload && Array.isArray(payload.setups)) {
+        liveRawData = payload;
+        window.RAW = payload;
+      }
+      build3DKnowledgeGraph();
+      var passCount = getAiPassStocks().length;
+      if (refBtn) refBtn.textContent = '↻ Sync Now';
+      if (stampEl) {
+        stampEl.textContent = 'Synced: ' + ((payload && payload.sourceLabel) || getNptString()) + ' (' + passCount + ' AI Pass)';
+      }
+      if (activeChartTicker) renderChartStage();
+    }
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      var fnName = forceFreshScan ? 'runAutonomousAiCommittee' : 'getAutonomousGraphData';
+      if (typeof google.script.run[fnName] === 'function') {
+        google.script.run
+          .withSuccessHandler(onDone)
+          .withFailureHandler(function() { onDone(null); })
+          [fnName](true);
+        return;
+      }
+    }
+    setTimeout(function() { onDone(null); }, 300);
+  }
+
+  // =========================================================================
+  // ZERO-POPUP INTERACTIVE NEPSEALPHA / TRADINGVIEW CHART + GMAIL LOGIN STAGE
+  // =========================================================================
+  var chartRangeKey = '1Y';
+  var chartViewMode = 'TA'; // 'TA' (TradingView OHLCV) or 'LIVE_IFRAME' (NepseAlpha embed)
+  var chartLightTheme = true;
+  var graphSessionToken = localStorage.getItem('nepse_graph_session_token') || '';
+  var graphUserEmail = localStorage.getItem('nepse_graph_user_email') || '';
+
+  function calcEmaSeries(candles, period) {
+    var k = 2 / (period + 1);
+    var out = [];
+    var ema = null;
+    for (var i = 0; i < candles.length; i++) {
+      var c = candles[i].close;
+      ema = (ema === null) ? c : (c * k + ema * (1 - k));
+      out.push({ time: candles[i].time, value: Number(ema.toFixed(2)) });
+    }
+    return out;
+  }
+
+  function ensureLightweightCharts(cb) {
+    if (typeof LightweightCharts !== 'undefined') { cb(true); return; }
+    var sc = document.createElement('script');
+    sc.src = 'https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js';
+    sc.onload = function() { cb(true); };
+    sc.onerror = function() { cb(false); };
+    document.head.appendChild(sc);
+  }
+
+  function renderGraphLoginGate(bodyEl, isConfigured, suggestedEmail, errorMsg) {
+    bodyEl.innerHTML =
+      '<div style="max-width:410px;margin:26px auto;background:#161a24;border:1px solid #3b82f6;border-radius:10px;padding:22px 24px;box-shadow:0 16px 40px rgba(0,0,0,0.6);">' +
+        '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">' +
+          '<span style="font-size:20px;">🔐</span>' +
+          '<strong style="font-size:15px;color:#f8fafc;">' + (isConfigured ? 'NEPSE Technical Graph Login' : 'First-Time Graph Login Setup') + '</strong>' +
+        '</div>' +
+        '<p style="margin:0 0 14px;font-size:11.5px;color:#94a3b8;line-height:1.45;">' +
+          (isConfigured
+            ? 'Enter your authorized Gmail and Graph Password to unlock multi-year NEPSE candlestick charts and NepseAlpha live feeds.'
+            : 'Register your authorized Gmail and create a Graph Password (stored as a salted SHA-256 hash in Apps Script Properties).') +
+        '</p>' +
+        (errorMsg ? '<div style="background:rgba(239,68,68,0.16);border:1px solid #ef4444;color:#fca5a5;font-size:11px;padding:7px 10px;border-radius:6px;margin-bottom:10px;">' + errorMsg + '</div>' : '') +
+        '<div style="display:flex;flex-direction:column;gap:9px;">' +
+          '<div>' +
+            '<label style="display:block;font-size:10.5px;color:#cbd5e1;font-weight:600;margin-bottom:4px;">Gmail Address</label>' +
+            '<input id="jcs-auth-email" type="email" value="' + (suggestedEmail || graphUserEmail || '') + '" placeholder="yourname@gmail.com" style="width:100%;background:#0f1219;border:1px solid #334155;color:#f8fafc;padding:8px 10px;border-radius:6px;font-size:12.5px;outline:none;" />' +
+          '</div>' +
+          '<div>' +
+            '<label style="display:block;font-size:10.5px;color:#cbd5e1;font-weight:600;margin-bottom:4px;">Graph Password</label>' +
+            '<input id="jcs-auth-pass" type="password" placeholder="Enter password (min 6 chars)" style="width:100%;background:#0f1219;border:1px solid #334155;color:#f8fafc;padding:8px 10px;border-radius:6px;font-size:12.5px;outline:none;" />' +
+          '</div>' +
+          '<button id="jcs-auth-submit" type="button" style="margin-top:4px;background:linear-gradient(135deg,#2563eb,#0284c7);border:none;color:#fff;font-weight:700;font-size:12.5px;padding:9px 14px;border-radius:6px;cursor:pointer;">' +
+            (isConfigured ? 'Unlock Technical Chart →' : 'Save Credentials & Unlock →') +
+          '</button>' +
+        '</div>' +
+      '</div>';
+
+    var subBtn = document.getElementById('jcs-auth-submit');
+    var passInp = document.getElementById('jcs-auth-pass');
+    function submitAuth() {
+      var em = (document.getElementById('jcs-auth-email').value || '').trim();
+      var pw = (document.getElementById('jcs-auth-pass').value || '').trim();
+      if (!em || !pw) return;
+      subBtn.disabled = true;
+      subBtn.textContent = 'Verifying...';
+
+      var method = isConfigured ? 'verifyGraphLogin' : 'registerInitialGraphAccount';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          subBtn.disabled = false;
+          if (res && res.ok && res.token) {
+            graphSessionToken = res.token;
+            graphUserEmail = res.email;
+            localStorage.setItem('nepse_graph_session_token', res.token);
+            localStorage.setItem('nepse_graph_user_email', res.email);
+            chartHistoryCache = {};
+            renderChartStage();
+          } else {
+            renderGraphLoginGate(bodyEl, isConfigured, em, (res && res.error) || 'Authentication failed.');
+          }
+        })
+        .withFailureHandler(function(err) {
+          subBtn.disabled = false;
+          renderGraphLoginGate(bodyEl, isConfigured, em, err && err.message ? err.message : 'Server error.');
+        })[method](em, pw);
+    }
+
+    if (subBtn) subBtn.addEventListener('click', submitAuth);
+    if (passInp) passInp.addEventListener('keydown', function(e) { if (e.key === 'Enter') submitAuth(); });
+  }
+
+  function renderTechnicalChartWidget(st, payload) {
+    var host = document.getElementById('jcs-tv-container');
+    if (!host) return;
+
+    if (chartViewMode === 'LIVE_IFRAME') {
+      var targetUrl = 'https://nepsealpha.com/trading/chart?symbol=' + encodeURIComponent(st.ticker);
+      host.innerHTML =
+        '<iframe src="' + targetUrl + '" style="width:100%;height:345px;border:none;background:#ffffff;" allow="fullscreen"></iframe>';
+      return;
+    }
+
+    ensureLightweightCharts(function(loaded) {
+      if (!loaded || typeof LightweightCharts === 'undefined') {
+        host.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:12px;">Unable to load TradingView library. Click NepseAlpha Live above.</div>';
+        return;
+      }
+
+      if (activeTvChart) {
+        try { activeTvChart.remove(); } catch (e) {}
+        activeTvChart = null;
+      }
+      host.innerHTML = '';
+
+      var candles = (payload && Array.isArray(payload.candles) && payload.candles.length > 0)
+        ? payload.candles
+        : [{ time: '2026-11-27', open: Number(st.ltp) || 500, high: Number(st.ltp) || 500, low: Number(st.ltp) || 500, close: Number(st.ltp) || 500, volume: 10000 }];
+
+      var lastBar = candles[candles.length - 1];
+      var prevBar = candles.length > 1 ? candles[candles.length - 2] : lastBar;
+
+      var ohlcHud = document.createElement('div');
+      ohlcHud.style.cssText = 'position:absolute;top:8px;left:12px;z-index:10;pointer-events:none;font-size:11.5px;font-family:Inter,sans-serif;padding:4px 8px;border-radius:5px;' +
+        (chartLightTheme
+          ? 'background:rgba(255,255,255,0.88);color:#0f172a;border:1px solid #e2e8f0;'
+          : 'background:rgba(19,23,34,0.86);color:#e2e8f0;border:1px solid #283042;');
+      host.appendChild(ohlcHud);
+
+      function updateOhlcHud(bar, refClose) {
+        var chg = refClose > 0 ? (((bar.close - refClose) / refClose) * 100) : 0;
+        var col = bar.close >= bar.open ? '#059669' : '#dc2626';
+        var volK = bar.volume >= 1000 ? (bar.volume / 1000).toFixed(2) + 'K' : String(bar.volume || 0);
+        ohlcHud.innerHTML =
+          '<strong>' + st.ticker + ' · 1D · ' + (st.sector || 'NEPSE') + '</strong> &nbsp; ' +
+          'O<span style="color:' + col + ';font-weight:700;">' + Number(bar.open).toFixed(2) + '</span> ' +
+          'H<span style="color:' + col + ';font-weight:700;">' + Number(bar.high).toFixed(2) + '</span> ' +
+          'L<span style="color:' + col + ';font-weight:700;">' + Number(bar.low).toFixed(2) + '</span> ' +
+          'C<span style="color:' + col + ';font-weight:700;">' + Number(bar.close).toFixed(2) + '</span> ' +
+          '<span style="color:' + col + ';font-weight:700;">(' + (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%)</span>' +
+          '<div style="font-size:10.5px;color:#0891b2;margin-top:2px;">Volume <strong>' + volK + '</strong> · ' + bar.time + '</div>';
+      }
+      updateOhlcHud(lastBar, prevBar.close);
+
+      var chart = LightweightCharts.createChart(host, {
+        width: host.clientWidth || 860,
+        height: 345,
+        layout: {
+          background: { color: chartLightTheme ? '#ffffff' : '#131722' },
+          textColor: chartLightTheme ? '#334155' : '#cbd5e1'
+        },
+        grid: {
+          vertLines: { color: chartLightTheme ? '#f1f5f9' : '#1e2433' },
+          horzLines: { color: chartLightTheme ? '#f1f5f9' : '#1e2433' }
+        },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: chartLightTheme ? '#cbd5e1' : '#283042' },
+        timeScale: { borderColor: chartLightTheme ? '#cbd5e1' : '#283042', timeVisible: true }
+      });
+      activeTvChart = chart;
+
+      var candleSeries = chart.addCandlestickSeries({
+        upColor: '#089981',
+        downColor: '#f23645',
+        borderVisible: false,
+        wickUpColor: '#089981',
+        wickDownColor: '#f23645'
+      });
+      candleSeries.setData(candles.map(function(c) {
+        return { time: c.time, open: c.open, high: c.high, low: c.low, close: c.close };
+      }));
+
+      var volSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: ''
+      });
+      volSeries.priceScale().applyOptions({ scaleMargins: { top: 0.80, bottom: 0 } });
+      volSeries.setData(candles.map(function(c) {
+        return {
+          time: c.time,
+          value: c.volume || 0,
+          color: c.close >= c.open ? 'rgba(8, 153, 129, 0.38)' : 'rgba(242, 54, 69, 0.38)'
+        };
+      }));
+
+      if (showEmaOverlay && candles.length >= 5) {
+        var ema20 = chart.addLineSeries({ color: '#2563eb', lineWidth: 2, title: 'EMA 20' });
+        ema20.setData(calcEmaSeries(candles, 20));
+        var ema50 = chart.addLineSeries({ color: '#d97706', lineWidth: 2, title: 'EMA 50' });
+        ema50.setData(calcEmaSeries(candles, 50));
+      }
+
+      if (showAiLevelsOverlay) {
+        if (st.target) {
+          candleSeries.createPriceLine({ price: Number(st.target), color: '#059669', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: 'TARGET' });
+        }
+        if (st.ltp) {
+          candleSeries.createPriceLine({ price: Number(st.ltp), color: '#0284c7', lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: 'LTP' });
+        }
+        if (st.stop_loss) {
+          candleSeries.createPriceLine({ price: Number(st.stop_loss), color: '#dc2626', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: 'STOP LOSS' });
+        }
+      }
+
+      chart.subscribeCrosshairMove(function(param) {
+        if (!param || !param.time || !param.seriesData) {
+          updateOhlcHud(lastBar, prevBar.close);
+          return;
+        }
+        var pt = param.seriesData.get(candleSeries);
+        if (pt) {
+          var idx = candles.findIndex(function(x) { return x.time === param.time; });
+          var barObj = idx >= 0 ? candles[idx] : { time: String(param.time), open: pt.open, high: pt.high, low: pt.low, close: pt.close, volume: 0 };
+          var refC = idx > 0 ? candles[idx - 1].close : barObj.open;
+          updateOhlcHud(barObj, refC);
+        }
       });
 
-      if (ranked.length > 0) {
-        var top3 = ranked.slice(0, 3);
-        var names = top3.map(function(s) { return String(s.ticker || s.name || s.id).toUpperCase(); });
-        focusAndActivateNode(top3[0], false);
-        speakReply(
-          'Your top leads today, Raju D. sir, are ' + names.join(', ') +
-          '. Locking onto ' + names[0] + ' at ' + (top3[0].ltp || 'current') + ' rupees.'
-        );
-      } else {
-        var briefBtn = document.getElementById('friday-briefing-btn');
-        if (briefBtn) triggerRealClick(briefBtn);
+      chart.timeScale().fitContent();
+
+      var srcBadge = document.getElementById('jcs-ta-source');
+      if (srcBadge) srcBadge.textContent = (payload && payload.source ? payload.source : 'LIVE_TA') + ' (' + candles.length + 'd)';
+    });
+  }
+
+  function renderChartStage() {
+    var stage = document.getElementById('jarvis-center-stage');
+    var tabsEl = document.getElementById('jcs-tabs');
+    var bodyEl = document.getElementById('jcs-body');
+    var extBtn = document.getElementById('jcs-open-ext-btn');
+    if (!stage || !tabsEl || !bodyEl) return;
+
+    if (openChartTickers.length === 0) {
+      stage.style.display = 'none';
+      bodyEl.innerHTML = '';
+      if (activeTvChart) {
+        try { activeTvChart.remove(); } catch (e) {}
+        activeTvChart = null;
       }
       return;
     }
 
-    // TASK 4: Brain View / Diagnosis
-    if (/\b(brain|disengage|helmet off|diagnosis|diagnose|function|code)\b/.test(lower)) {
-      var diagBtn = document.getElementById('friday-diag-btn');
-      if (diagBtn) triggerRealClick(diagBtn);
-      else clickButtonMatching(['DISENGAGE', 'DIAGNOSIS', 'BRAIN']);
-      return;
+    if (!activeChartTicker || openChartTickers.indexOf(activeChartTicker) === -1) {
+      activeChartTicker = openChartTickers[openChartTickers.length - 1];
     }
 
-    // TASK 5: Engage Visor
-    if (/\b(helmet on|engage|visor)\b/.test(lower)) {
-      ensureVisorEngaged();
-      speakReply('Visor engaged, Raju D. sir.');
-      return;
-    }
+    tabsEl.innerHTML = openChartTickers.map(function(sym) {
+      return '<div class="jcs-tab' + (sym === activeChartTicker ? ' active' : '') + '" data-tab-sym="' + sym + '">' +
+        '<span>' + sym + '</span><span data-close-sym="' + sym + '" style="color:#94a3b8;font-size:10px;">✕</span>' +
+      '</div>';
+    }).join('');
 
-    // TASK 6: Zoom In / Out / Reset
-    var g = resolveGraphInstance();
-    if (g && typeof g.cameraPosition === 'function') {
-      if (/\b(zoom in|closer)\b/.test(lower)) {
-        var p = g.cameraPosition();
-        g.cameraPosition({ x: p.x * 0.65, y: p.y * 0.65, z: p.z * 0.65 }, null, 650);
-        speakReply('Zooming in on the knowledge graph, Raju D. sir.');
-        return;
-      }
-      if (/\b(zoom out|reset|overview)\b/.test(lower)) {
-        if (typeof g.zoomToFit === 'function') g.zoomToFit(700, 40);
-        else g.cameraPosition({ x: 0, y: 0, z: 320 }, { x: 0, y: 0, z: 0 }, 700);
-        window.dispatchEvent(new Event('friday:clearHighlight'));
-        speakReply('Resetting 3D graph view, Raju D. sir.');
-        return;
-      }
-    }
+    if (extBtn) extBtn.href = 'https://nepsealpha.com/trading/chart?symbol=' + encodeURIComponent(activeChartTicker);
+    stage.style.display = 'flex';
 
-    // TASK 7: Briefing / Silence
-    if (/\b(briefing|report|summary)\b/.test(lower)) {
-      var bBtn = document.getElementById('friday-briefing-btn');
-      if (bBtn) triggerRealClick(bBtn);
-      return;
-    }
-    if (/\b(stop|silence|quiet)\b/.test(lower)) {
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      return;
-    }
-
-    // TASK 8: Any Named Stock or Graph Node
-    if (mentionedStock) {
-      var mSym = String(mentionedStock.ticker || mentionedStock.name || mentionedStock.id).toUpperCase();
-      focusAndActivateNode(mentionedStock, true);
-      speakReply('Locking onto ' + mSym + ', Raju D. sir.');
-      return;
-    }
-
-    for (var n = 0; n < allNodes.length; n++) {
-      var label = String(allNodes[n].name || allNodes[n].label || allNodes[n].id || '').toLowerCase();
-      if (label.length >= 3 && lower.indexOf(label) > -1) {
-        focusAndActivateNode(allNodes[n], false);
-        speakReply('Focusing on ' + String(allNodes[n].name || allNodes[n].id) + ', Raju D. sir.');
-        return;
-      }
+    if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.getGraphAuthStatus === 'function') {
+      google.script.run
+        .withSuccessHandler(function(auth) {
+          if (!auth.isConfigured || !auth.authenticated) {
+            renderGraphLoginGate(bodyEl, auth.isConfigured, auth.suggestedEmail, '');
+          } else {
+            renderAuthenticatedChartContent(bodyEl, tabsEl);
+          }
+        })
+        .withFailureHandler(function() {
+          renderAuthenticatedChartContent(bodyEl, tabsEl);
+        })
+        .getGraphAuthStatus(graphSessionToken);
+    } else {
+      renderAuthenticatedChartContent(bodyEl, tabsEl);
     }
   }
 
-  // 4. Listen for Commands from Top-Level GitHub Pages Voice Shell
-  window.addEventListener('message', function(event) {
-    var data = event.data || {};
-    if (data.type === 'JARVIS_VOICE_OPENED') {
-      isVoiceOpen = true;
-      updateDockButtons();
-      speakReply('Voice command open, Raju D. sir.');
-    } else if (data.type === 'JARVIS_VOICE_CLOSED') {
-      isVoiceOpen = false;
-      updateDockButtons();
-      speakReply('Voice command closed, Raju D. sir.');
-    } else if (data.type === 'JARVIS_VOICE_CMD' && data.transcript) {
-      executeVoiceCommand(data.transcript);
+  function renderAuthenticatedChartContent(bodyEl, tabsEl) {
+    var st = getMergedStocks().find(function(x) { return x.ticker === activeChartTicker; }) || {
+      ticker: activeChartTicker, sector: 'NEPSE', signal: 'SCAN', ltp: 0, entry_zone: '—', stop_loss: 0, target: 0, kelly_pct: 0, rr_ratio: 0
+    };
+    var kellyStr = st.kelly_pct > 0 ? ((st.kelly_pct <= 1 ? st.kelly_pct * 100 : st.kelly_pct).toFixed(1) + '%') : '0.0%';
+    var turnoverCr = st.avg_turnover_20d > 0 ? ('Rs ' + (st.avg_turnover_20d / 10000000).toFixed(2) + ' Cr') : '—';
+
+    var ranges = ['5Y', '1Y', '6M', '3M', '1M', '5D', '1D'];
+    var rangeBarHtml =
+      '<div style="display:flex;justify-content:space-between;align-items:center;background:#161a24;border:1px solid #283042;border-radius:6px;padding:4px 10px;">' +
+        '<div style="display:flex;gap:4px;">' +
+          ranges.map(function(rk) {
+            var isAct = (rk === chartRangeKey);
+            return '<button type="button" data-chart-range="' + rk + '" style="background:' + (isAct ? '#2563eb' : 'transparent') + ';border:1px solid ' + (isAct ? '#3b82f6' : 'transparent') + ';color:' + (isAct ? '#fff' : '#94a3b8') + ';font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;cursor:pointer;">' + rk.toLowerCase() + '</button>';
+          }).join('') +
+        '</div>' +
+        '<div style="font-size:11px;color:#94a3b8;">Signed in: <strong style="color:#34d399;">' + (graphUserEmail || 'Authorized') + '</strong> · ' + getNptString() + ' (UTC+5:45)</div>' +
+      '</div>';
+
+    bodyEl.innerHTML =
+      '<div class="jcs-kpi-grid">' +
+        '<div class="jcs-kpi-box"><div class="jcs-kpi-lbl">Signal / Action</div><div class="jcs-kpi-val" style="color:#facc15;">' + st.signal + '</div></div>' +
+        '<div class="jcs-kpi-box"><div class="jcs-kpi-lbl">Latest LTP</div><div class="jcs-kpi-val" style="color:#38bdf8;">' + (st.ltp ? 'Rs ' + st.ltp : '—') + '</div></div>' +
+        '<div class="jcs-kpi-box"><div class="jcs-kpi-lbl">Stop Loss</div><div class="jcs-kpi-val" style="color:#f87171;">' + (st.stop_loss ? 'Rs ' + st.stop_loss : '—') + '</div></div>' +
+        '<div class="jcs-kpi-box"><div class="jcs-kpi-lbl">Target (R:R ' + (st.rr_ratio ? Number(st.rr_ratio).toFixed(1) + 'x' : '2.1x') + ')</div><div class="jcs-kpi-val" style="color:#34d399;">' + (st.target ? 'Rs ' + st.target : '—') + '</div></div>' +
+        '<div class="jcs-kpi-box"><div class="jcs-kpi-lbl">Kelly / Feed</div><div class="jcs-kpi-val" style="font-size:12px;">' + kellyStr + ' · <span id="jcs-ta-source" style="color:#94a3b8;">' + turnoverCr + '</span></div></div>' +
+      '</div>' +
+      '<div id="jcs-tv-container" style="height:345px;"></div>' +
+      rangeBarHtml +
+      '<div class="jcs-thesis-grid">' +
+        '<div class="jcs-thesis-box"><strong style="color:#34d399;">▲ AI Committee Bull Case & Entry Zone (' + st.entry_zone + '):</strong><br/>' + (st.bull_case || 'Passed L2 institutional liquidity and sector momentum gates.') + '</div>' +
+        '<div class="jcs-thesis-box"><strong style="color:#f87171;">▼ Risk Guard & Invalidations:</strong><br/>' + (st.bear_case || 'Strict stop loss enforcement below intraday structural support.') + '</div>' +
+      '</div>';
+
+    var symToFetch = activeChartTicker;
+    var cacheId = symToFetch + '_' + chartRangeKey;
+
+    if (chartHistoryCache[cacheId]) {
+      renderTechnicalChartWidget(st, chartHistoryCache[cacheId]);
+    } else if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.getLiveChartData === 'function') {
+      google.script.run
+        .withSuccessHandler(function(payload) {
+          if (payload && payload.authRequired) {
+            graphSessionToken = '';
+            localStorage.removeItem('nepse_graph_session_token');
+            renderChartStage();
+            return;
+          }
+          chartHistoryCache[cacheId] = payload;
+          if (activeChartTicker === symToFetch) renderTechnicalChartWidget(st, payload);
+        })
+        .withFailureHandler(function() {
+          renderTechnicalChartWidget(st, null);
+        })
+        .getLiveChartData(symToFetch, chartRangeKey, graphSessionToken);
+    } else {
+      renderTechnicalChartWidget(st, null);
+    }
+
+    bodyEl.querySelectorAll('[data-chart-range]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        chartRangeKey = this.getAttribute('data-chart-range');
+        renderChartStage();
+      });
+    });
+
+    var modeTaBtn = document.getElementById('jcs-mode-ta');
+    var modeLiveBtn = document.getElementById('jcs-mode-live');
+    if (modeTaBtn && modeLiveBtn) {
+      modeTaBtn.classList.toggle('is-on', chartViewMode === 'TA');
+      modeLiveBtn.classList.toggle('is-on', chartViewMode === 'LIVE_IFRAME');
+      modeTaBtn.onclick = function() { chartViewMode = 'TA'; renderChartStage(); };
+      modeLiveBtn.onclick = function() { chartViewMode = 'LIVE_IFRAME'; renderChartStage(); };
+    }
+
+    var themeBtn = document.getElementById('jcs-tog-theme');
+    if (themeBtn) {
+      themeBtn.textContent = chartLightTheme ? '☀️ Light TV' : '🌙 Dark TV';
+      themeBtn.classList.toggle('is-on', chartLightTheme);
+      themeBtn.onclick = function() {
+        chartLightTheme = !chartLightTheme;
+        renderChartStage();
+      };
+    }
+
+    var emaBtn = document.getElementById('jcs-tog-ema');
+    if (emaBtn) {
+      emaBtn.textContent = 'EMA 20/50: ' + (showEmaOverlay ? 'ON' : 'OFF');
+      emaBtn.classList.toggle('is-on', showEmaOverlay);
+      emaBtn.onclick = function() {
+        showEmaOverlay = !showEmaOverlay;
+        renderTechnicalChartWidget(st, chartHistoryCache[cacheId] || null);
+        this.textContent = 'EMA 20/50: ' + (showEmaOverlay ? 'ON' : 'OFF');
+        this.classList.toggle('is-on', showEmaOverlay);
+      };
+    }
+
+    var lvlBtn = document.getElementById('jcs-tog-levels');
+    if (lvlBtn) {
+      lvlBtn.textContent = 'AI Levels: ' + (showAiLevelsOverlay ? 'ON' : 'OFF');
+      lvlBtn.classList.toggle('is-on', showAiLevelsOverlay);
+      lvlBtn.onclick = function() {
+        showAiLevelsOverlay = !showAiLevelsOverlay;
+        renderTechnicalChartWidget(st, chartHistoryCache[cacheId] || null);
+        this.textContent = 'AI Levels: ' + (showAiLevelsOverlay ? 'ON' : 'OFF');
+        this.classList.toggle('is-on', showAiLevelsOverlay);
+      };
+    }
+
+    var lockBtn = document.getElementById('jcs-lock-btn');
+    if (lockBtn) {
+      lockBtn.onclick = function() {
+        if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.logoutGraphSession === 'function') {
+          google.script.run.logoutGraphSession(graphSessionToken);
+        }
+        graphSessionToken = '';
+        localStorage.removeItem('nepse_graph_session_token');
+        renderChartStage();
+      };
+    }
+
+    tabsEl.querySelectorAll('[data-tab-sym]').forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        if (e.target && e.target.hasAttribute('data-close-sym')) return;
+        activeChartTicker = this.getAttribute('data-tab-sym');
+        renderChartStage();
+      });
+    });
+
+    tabsEl.querySelectorAll('[data-close-sym]').forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var rem = this.getAttribute('data-close-sym');
+        openChartTickers = openChartTickers.filter(function(t) { return t !== rem; });
+        renderChartStage();
+      });
+    });
+  }
+
+  function openTradePlanChart(sym) {
+    var ticker = String(sym || '').toUpperCase().trim();
+    if (!ticker) return;
+    if (openChartTickers.indexOf(ticker) === -1) {
+      if (openChartTickers.length >= 6) openChartTickers.shift();
+      openChartTickers.push(ticker);
+    }
+    activeChartTicker = ticker;
+    renderChartStage();
+  }
+
+  function closeChartStage() {
+    briefingToken++;
+    openChartTickers = [];
+    activeChartTicker = '';
+    if (activeTvChart) {
+      try { activeTvChart.remove(); } catch (e) {}
+      activeTvChart = null;
+    }
+    var stage = document.getElementById('jarvis-center-stage');
+    if (stage) stage.style.display = 'none';
+  }
+
+  // =========================================================================
+  // MOUNT & WIRE UI
+  // =========================================================================
+  function mountAll() {
+    var host = document.getElementById('graph3d');
+    if (host && !document.getElementById('kg-3d-canvas')) {
+      host.innerHTML = '<canvas id="kg-3d-canvas"></canvas>';
+    }
+
+    function bootThree() {
+      build3DKnowledgeGraph();
+      triggerAutonomousCloudSync(false);
+    }
+
+    if (typeof THREE !== 'undefined') bootThree();
+    else {
+      var sc = document.createElement('script');
+      sc.src = 'https://unpkg.com/three@0.160.0/build/three.min.js';
+      sc.onload = bootThree;
+      document.head.appendChild(sc);
+    }
+
+    if (!document.getElementById('jarvis-floating-dock')) {
+      var dock = document.createElement('div');
+      dock.id = 'jarvis-floating-dock';
+
+      var muteBtn = document.createElement('button');
+      muteBtn.id = 'jarvis-dock-mute-btn';
+      muteBtn.className = 'kg-voice-master-btn is-off';
+      muteBtn.type = 'button';
+      muteBtn.textContent = '🔇 Voice: OFF';
+      muteBtn.addEventListener('click', function() { setVoiceEnabled(!isVoiceEnabled); });
+
+      var pill = document.createElement('span');
+      pill.id = 'jarvis-status-pill';
+      pill.textContent = '3D 360° AUTO';
+
+      var cmdBtn = document.createElement('button');
+      cmdBtn.id = 'jarvis-mic-btn';
+      cmdBtn.type = 'button';
+      cmdBtn.textContent = '⌨️ CONSOLE';
+      cmdBtn.addEventListener('click', function() {
+        isConsoleOpen = !isConsoleOpen;
+        var bar = document.getElementById('jarvis-command-bar');
+        if (bar) bar.style.display = isConsoleOpen ? 'flex' : 'none';
+      });
+
+      dock.appendChild(muteBtn);
+      dock.appendChild(pill);
+      dock.appendChild(cmdBtn);
+      document.body.appendChild(dock);
+    }
+
+    syncVoiceUI();
+    updateClock();
+
+    var topVoice = document.getElementById('kg-voice-master-top');
+    if (topVoice) topVoice.addEventListener('click', function() { setVoiceEnabled(!isVoiceEnabled); });
+    var cVoice = document.getElementById('jcb-mute-toggle-btn');
+    if (cVoice) cVoice.addEventListener('click', function() { setVoiceEnabled(!isVoiceEnabled); });
+
+    var orbitBtn = document.getElementById('kg-orbit-btn');
+    if (orbitBtn) {
+      orbitBtn.classList.add('active');
+      orbitBtn.addEventListener('click', function() {
+        g3d.autoOrbit360 = !g3d.autoOrbit360;
+        this.classList.toggle('active', g3d.autoOrbit360);
+      });
+    }
+
+    var briefBtn = document.getElementById('kg-auto-brief-btn');
+    if (briefBtn) briefBtn.addEventListener('click', startAutoInvestmentBriefing);
+
+    var refBtn = document.getElementById('kg-refresh-btn');
+    if (refBtn) refBtn.addEventListener('click', function() { triggerAutonomousCloudSync(true); });
+
+    var briefToggle = document.getElementById('kg-brief-toggle');
+    if (briefToggle) briefToggle.addEventListener('click', function() {
+      document.getElementById('kg-briefing-drawer').classList.toggle('collapsed');
+    });
+
+    var ctrlToggle = document.getElementById('kg-ctrl-toggle');
+    if (ctrlToggle) ctrlToggle.addEventListener('click', function() {
+      document.getElementById('kg-controls-card').classList.toggle('collapsed');
+    });
+
+    var sbToggle = document.getElementById('kg-sidebar-toggle');
+    if (sbToggle) sbToggle.addEventListener('click', function() {
+      document.getElementById('kg-sidebar').classList.toggle('collapsed');
+      document.body.classList.toggle('kg-sidebar-collapsed');
+      setTimeout(updateCameraOffset, 220);
+    });
+
+    document.querySelectorAll('.kg-nav-item[data-nav]').forEach(function(item) {
+      item.addEventListener('click', function() {
+        var act = this.getAttribute('data-nav');
+        if (act === 'briefing') startAutoInvestmentBriefing();
+        else if (act === 'committee') triggerAutonomousCloudSync(true);
+        else if (act === 'toggle-voice') setVoiceEnabled(!isVoiceEnabled);
+        else if (act === 'pass-only') {
+          ENTITY_TYPES.forEach(function(t) { t.checked = (t.key === 'AI_PASS' || t.key === 'SECTOR'); });
+          applyFiltersAndRender3D();
+        } else if (act === 'explorer') {
+          ENTITY_TYPES.forEach(function(t) { t.checked = true; });
+          kg.sectorFilter = 'ALL';
+          applyFiltersAndRender3D();
+        } else if (act === 'chart') {
+          var first = (getAiPassStocks()[0] && getAiPassStocks()[0].ticker) || 'NABIL';
+          openTradePlanChart(first);
+        } else if (act === 'voicecmd') {
+          isConsoleOpen = !isConsoleOpen;
+          document.getElementById('jarvis-command-bar').style.display = isConsoleOpen ? 'flex' : 'none';
+        }
+      });
+    });
+
+    var secFilter = document.getElementById('kg-sector-filter');
+    if (secFilter) secFilter.addEventListener('change', function() { kg.sectorFilter = this.value; applyFiltersAndRender3D(); });
+
+    var searchBox = document.getElementById('kg-search-box');
+    if (searchBox) searchBox.addEventListener('input', function() { kg.searchQuery = this.value; applyFiltersAndRender3D(); });
+
+    var quickPill = document.getElementById('kg-quick-search-pill');
+    if (quickPill && searchBox) quickPill.addEventListener('click', function() { searchBox.focus(); });
+
+    var btnHi = document.getElementById('kg-mode-highlight');
+    var btnFi = document.getElementById('kg-mode-filter');
+    if (btnHi && btnFi) {
+      btnHi.addEventListener('click', function() { kg.searchMode = 'highlight'; btnHi.classList.add('active'); btnFi.classList.remove('active'); applyFiltersAndRender3D(); });
+      btnFi.addEventListener('click', function() { kg.searchMode = 'filter'; btnFi.classList.add('active'); btnHi.classList.remove('active'); applyFiltersAndRender3D(); });
+    }
+
+    document.getElementById('kg-types-all').addEventListener('click', function() { ENTITY_TYPES.forEach(function(t) { t.checked = true; }); applyFiltersAndRender3D(); });
+    document.getElementById('kg-types-none').addEventListener('click', function() { ENTITY_TYPES.forEach(function(t) { t.checked = false; }); applyFiltersAndRender3D(); });
+    document.getElementById('kg-relayout-btn').addEventListener('click', function() { kg.layoutSeed++; build3DKnowledgeGraph(); });
+    document.getElementById('kg-recenter-btn').addEventListener('click', function() { g3d.theta = 0.25; g3d.phi = 1.38; g3d.radius = 560; g3d.targetX = 0; g3d.targetY = 0; g3d.targetZ = 0; });
+
+    document.getElementById('kg-src-sheet').addEventListener('click', function() { kg.sourceMode = 'sheet'; this.classList.add('active'); document.getElementById('kg-src-graphdb').classList.remove('active'); applyFiltersAndRender3D(); });
+    document.getElementById('kg-src-graphdb').addEventListener('click', function() { kg.sourceMode = 'graphdb'; this.classList.add('active'); document.getElementById('kg-src-sheet').classList.remove('active'); applyFiltersAndRender3D(); });
+
+    document.getElementById('jcs-close-btn').addEventListener('click', closeChartStage);
+    document.getElementById('jcb-close-x').addEventListener('click', function() { isConsoleOpen = false; document.getElementById('jarvis-command-bar').style.display = 'none'; });
+
+    var cInp = document.getElementById('jcb-input');
+    var cRun = document.getElementById('jcb-run-btn');
+    function runCmd(txt) {
+      var lower = String(txt || '').toLowerCase().trim();
+      if (!lower) return;
+      if (lower.indexOf('brief') > -1) startAutoInvestmentBriefing();
+      else if (lower.indexOf('scan') > -1) triggerAutonomousCloudSync(true);
+      else if (lower.indexOf('recenter') > -1) { g3d.theta = 0.25; g3d.phi = 1.38; g3d.radius = 560; }
+      else if (lower.indexOf('close') > -1) closeChartStage();
+      else {
+        var found = getMergedStocks().find(function(s) { return s.ticker.toLowerCase() === lower; });
+        if (found) openTradePlanChart(found.ticker);
+      }
+    }
+    cRun.addEventListener('click', function() { runCmd(cInp.value); cInp.value = ''; });
+    cInp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { runCmd(cInp.value); cInp.value = ''; } });
+    document.querySelectorAll('.jcb-chip').forEach(function(ch) {
+      ch.addEventListener('click', function() { runCmd(this.getAttribute('data-cmd')); });
+    });
+  }
+
+  setTimeout(mountAll, 120);
+  setInterval(updateClock, 1000);
+  setInterval(function() { if (!document.hidden) triggerAutonomousCloudSync(false); }, 60000);
+
+  window.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      var sb = document.getElementById('kg-search-box');
+      if (sb) sb.focus();
     }
   });
-
-  function mountDockButtons() {
-    var dock = document.getElementById('friday-voice-dock');
-    if (!dock || document.getElementById('jarvis-mic-btn')) return;
-
-    var closeBtn = document.createElement('button');
-    closeBtn.id = 'jarvis-mic-close-btn';
-    closeBtn.className = 'fv-btn';
-    closeBtn.type = 'button';
-    closeBtn.title = 'Close Voice Command';
-    closeBtn.innerHTML = '✕ CLOSE VOICE';
-    closeBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      if (isEmbeddedInShell) {
-        postToShell({ type: 'JARVIS_SHELL_SET_VOICE', open: false });
-      }
-      isVoiceOpen = false;
-      updateDockButtons();
-      speakReply('Voice command closed, Raju D. sir.');
-    });
-
-    var micBtn = document.createElement('button');
-    micBtn.id = 'jarvis-mic-btn';
-    micBtn.className = 'fv-btn';
-    micBtn.type = 'button';
-    micBtn.title = isEmbeddedInShell ? 'Open / Close Voice Command' : 'Launch Top-Level Voice HUD Shell';
-    micBtn.innerHTML = '🎙️ VOICE';
-    micBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      if (!isEmbeddedInShell) {
-        window.open(SHELL_URL, '_blank');
-        return;
-      }
-      isVoiceOpen = !isVoiceOpen;
-      postToShell({ type: 'JARVIS_SHELL_SET_VOICE', open: isVoiceOpen });
-      updateDockButtons();
-      speakReply(isVoiceOpen ? 'Voice command open, Raju D. sir.' : 'Voice command closed, Raju D. sir.');
-    });
-
-    dock.insertBefore(closeBtn, dock.firstChild);
-    dock.insertBefore(micBtn, dock.firstChild);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mountDockButtons);
-  } else {
-    mountDockButtons();
-  }
-
-  window.JarvisVoiceCommand = {
-    run: executeVoiceCommand
-  };
+  window.addEventListener('resize', function() {
+    updateCameraOffset();
+    var host = document.getElementById('jcs-tv-container');
+    if (activeTvChart && host) {
+      activeTvChart.applyOptions({ width: host.clientWidth || 860 });
+    }
+  });
 })();
 </script>
-<!-- ==================== END IRON MAN HUD 3D KNOWLEDGE GRAPH VOICE EXECUTOR ==================== -->
+<!-- ==================== END 3D 360° NEPSE KNOWLEDGE GRAPH + AUTONOMOUS AI COMMITTEE ==================== -->
