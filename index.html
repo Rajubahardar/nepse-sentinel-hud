@@ -22,60 +22,6 @@
       border: none;
       z-index: 1;
     }
-    /* Setup modal shown only once until Web App URL is saved */
-    #setup-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 10000;
-      background: rgba(5, 10, 18, 0.96);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: #ffe4b5;
-      padding: 20px;
-      text-align: center;
-    }
-    .setup-box {
-      max-width: 560px;
-      width: 100%;
-      border: 1px solid #ff8c00;
-      background: #0a1424;
-      padding: 24px;
-      box-shadow: 0 0 30px rgba(255, 140, 0, 0.25);
-    }
-    .setup-box h2 {
-      margin: 0 0 10px;
-      color: #ffb340;
-      font-size: 16px;
-      letter-spacing: 1.5px;
-    }
-    .setup-box p {
-      font-size: 13px;
-      color: #cbd5e1;
-      margin: 0 0 14px;
-    }
-    .setup-box input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 10px;
-      background: #050a12;
-      border: 1px solid #00f5d4;
-      color: #ffffff;
-      font-family: inherit;
-      font-size: 12px;
-      margin-bottom: 12px;
-    }
-    .setup-box button {
-      background: #ff8c00;
-      color: #050a12;
-      border: none;
-      padding: 10px 20px;
-      font-weight: bold;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    /* Floating Top-Center Voice Command Strip */
     #voice-hud-strip {
       position: fixed;
       top: 10px;
@@ -86,14 +32,14 @@
       align-items: center;
       gap: 10px;
       padding: 6px 14px;
-      background: rgba(7, 14, 24, 0.90);
-      border: 1px solid rgba(0, 245, 212, 0.55);
+      background: rgba(7, 14, 24, 0.92);
+      border: 1px solid rgba(0, 245, 212, 0.6);
       border-left: 3px solid #ff8c00;
       border-right: 3px solid #00f5d4;
       clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
       color: #e0f2fe;
       font-size: 12px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
     }
     #voice-status-dot {
       width: 9px;
@@ -107,11 +53,10 @@
       box-shadow: 0 0 10px #f43f5e;
     }
     #voice-live-text {
-      max-width: 44vw;
+      max-width: 46vw;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #e0f2fe;
     }
     .strip-btn {
       background: rgba(0, 245, 212, 0.16);
@@ -123,31 +68,17 @@
       cursor: pointer;
       flex-shrink: 0;
     }
-    .strip-btn:hover {
-      background: rgba(0, 245, 212, 0.32);
-    }
+    .strip-btn:hover { background: rgba(0, 245, 212, 0.32); }
     #btn-close-voice {
       border-color: #f43f5e;
       color: #fda4af;
       background: rgba(244, 63, 94, 0.16);
       display: none;
     }
-    #btn-close-voice:hover {
-      background: #f43f5e;
-      color: #ffffff;
-    }
+    #btn-close-voice:hover { background: #f43f5e; color: #ffffff; }
   </style>
 </head>
 <body>
-
-  <div id="setup-overlay">
-    <div class="setup-box">
-      <h2>CONNECT NEPSE SENTINEL WEB APP</h2>
-      <p>Paste your Google Apps Script Web App <b>/exec</b> URL below once to bind your 3D Knowledge Graph with top-level voice control:</p>
-      <input id="webapp-url-input" type="text" placeholder="https://script.google.com/macros/s/.../exec" />
-      <button id="save-url-btn" type="button">LAUNCH VOICE HUD</button>
-    </div>
-  </div>
 
   <div id="voice-hud-strip">
     <span id="voice-status-dot"></span>
@@ -159,37 +90,21 @@
   <iframe id="hud-frame" allow="microphone *; autoplay *; clipboard-write *"></iframe>
 
   <script>
+    const DEFAULT_EXEC_URL = 'https://script.google.com/macros/s/AKfycbwyIMlqcNO4dc5s6P3Aui_aACI-FA0QuzO3ptQs4QQSFRaks8Sy8HIGVQvl-hhRhuGh/exec';
     const STORAGE_KEY = 'nepse_sentinel_webapp_url';
     const hudFrame = document.getElementById('hud-frame');
-    const setupOverlay = document.getElementById('setup-overlay');
-    const urlInput = document.getElementById('webapp-url-input');
     const statusDot = document.getElementById('voice-status-dot');
     const liveText = document.getElementById('voice-live-text');
     const btnOpen = document.getElementById('btn-open-voice');
     const btnClose = document.getElementById('btn-close-voice');
 
-    // Allow passing ?url=... or saving once in localStorage
     const params = new URLSearchParams(window.location.search);
     const paramUrl = params.get('url');
     if (paramUrl && paramUrl.includes('script.google.com')) {
       localStorage.setItem(STORAGE_KEY, paramUrl.trim());
     }
 
-    const savedUrl = localStorage.getItem(STORAGE_KEY) || '';
-    if (savedUrl) {
-      hudFrame.src = savedUrl;
-    } else {
-      setupOverlay.style.display = 'flex';
-    }
-
-    document.getElementById('save-url-btn').addEventListener('click', () => {
-      const val = urlInput.value.trim();
-      if (val.startsWith('https://script.google.com/')) {
-        localStorage.setItem(STORAGE_KEY, val);
-        setupOverlay.style.display = 'none';
-        hudFrame.src = val;
-      }
-    });
+    hudFrame.src = localStorage.getItem(STORAGE_KEY) || DEFAULT_EXEC_URL;
 
     function postToHud(msg) {
       if (hudFrame && hudFrame.contentWindow) {
@@ -197,7 +112,6 @@
       }
     }
 
-    // Top-level Speech Recognition (no popup windows, no COOP disconnect, no getUserMedia lock)
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     let voiceCommandOpen = false;
     let aiSpeaking = false;
@@ -261,10 +175,10 @@
           const alt = event.results[i][0];
           const txt = String(alt.transcript || '').trim();
           const conf = typeof alt.confidence === 'number' ? alt.confidence : 1;
-          const hasCommandWord = /\b(voice command|open|close|chart|backtest|backtesting|lead|leads|top|brain|zoom|reset|briefing|stop)\b/i.test(txt);
+          const hasCommandWord = /\b(voice command|open|close|chart|backtest|backtesting|lead|leads|top|brain|zoom|reset|briefing|stop|nica|shivm|sahas|phcl|hurja)\b/i.test(txt);
 
           if (event.results[i].isFinal) {
-            if (txt.length >= 2 && (conf >= 0.45 || hasCommandWord)) {
+            if (txt.length >= 2 && (conf >= 0.42 || hasCommandWord)) {
               finalSpoken += ' ' + txt;
             }
           } else {
@@ -275,7 +189,6 @@
         const currentPhrase = (finalSpoken || interim).trim();
         if (!currentPhrase) return;
 
-        // Instant wake phrase detection
         if (!voiceCommandOpen && /\b(open voice command|start voice command|activate voice command)\b/i.test(currentPhrase)) {
           finalSpoken = '';
           setVoiceCommandOpen(true, true);
