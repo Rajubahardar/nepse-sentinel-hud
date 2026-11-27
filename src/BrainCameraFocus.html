@@ -1,0 +1,375 @@
+<!-- ==================== DEDICATED BRAIN CAMERA & 120 FPS NODE FOCUS ENGINE ==================== -->
+<script>
+(function() {
+  if (window.__brainCameraFocusInstalled) return;
+  window.__brainCameraFocusInstalled = true;
+
+  var brainGraph = null;
+  var baseNodeColor = null;
+  var baseNodeVal = null;
+  var savedAutoRotate = null;
+
+  var activeNode = null;
+  var activeColor = '#00f5d4';
+  var curX = window.innerWidth * 0.56;
+  var curY = window.innerHeight * 0.48;
+  var targetX = curX;
+  var targetY = curY;
+  var lastTime = performance.now();
+  var rafId = null;
+
+  // 1. Register and optimize the graph instance for smooth 120 FPS rendering
+  function registerBrainGraph(inst) {
+    if (!inst || brainGraph === inst) return;
+    if (typeof inst.graphData !== 'function') return;
+
+    brainGraph = inst;
+    window.Graph = inst;
+
+    try {
+      if (typeof inst.renderer === 'function' && inst.renderer()) {
+        inst.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      }
+      if (typeof inst.cooldownTicks === 'function') {
+        inst.cooldownTicks(100);
+      }
+      if (typeof inst.d3AlphaDecay === 'function') {
+        inst.d3AlphaDecay(0.035);
+      }
+    } catch (e) {}
+
+    if (typeof inst.nodeColor === 'function') {
+      baseNodeColor = inst.nodeColor();
+    }
+    if (typeof inst.nodeVal === 'function') {
+      baseNodeVal = inst.nodeVal();
+    }
+  }
+
+  window.registerBrainGraph = registerBrainGraph;
+
+  // 2. Intercept ForceGraph3D / ForceGraph factory calls even inside private closures
+  function wrapFactory(name) {
+    var orig = window[name];
+    if (typeof orig !== 'function' || orig.__brainWrapped) return;
+    var wrapped = function() {
+      var inst = orig.apply(this, arguments);
+      if (inst && (typeof inst === 'object' || typeof inst === 'function')) {
+        registerBrainGraph(inst);
+      }
+      return inst;
+    };
+    for (var k in orig) {
+      if (Object.prototype.hasOwnProperty.call(orig, k)) {
+        wrapped[k] = orig[k];
+      }
+    }
+    wrapped.__brainWrapped = true;
+    window[name] = wrapped;
+  }
+
+  wrapFactory('ForceGraph3D');
+  wrapFactory('ForceGraph');
+
+  // Also scan globals in case the graph was created before this script ran
+  function discoverExistingGraph() {
+    if (brainGraph) return brainGraph;
+    wrapFactory('ForceGraph3D');
+    wrapFactory('ForceGraph');
+
+    var known = [window.Graph, window.graph, window.fg, window.knowledgeGraph];
+    for (var i = 0; i < known.length; i++) {
+      if (known[i] && typeof known[i].graphData === 'function') {
+        registerBrainGraph(known[i]);
+        return brainGraph;
+      }
+    }
+
+    var keys = Object.keys(window);
+    for (var j = 0; j < keys.length; j++) {
+      try {
+        var val = window[keys[j]];
+        if (val && (typeof val === 'object' || typeof val === 'function') &&
+            typeof val.graphData === 'function' &&
+            (typeof val.cameraPosition === 'function' || typeof val.centerAt === 'function')) {
+          registerBrainGraph(val);
+          return brainGraph;
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  var scanCount = 0;
+  var scanTimer = setInterval(function() {
+    scanCount++;
+    if (discoverExistingGraph() || scanCount > 80) {
+      clearInterval(scanTimer);
+    }
+  }, 200);
+
+  // 3. Multi-tier fuzzy node matching (exact -> substring -> normalized identifier)
+  function normalizeToken(str) {
+    return String(str || '')
+      .toLowerCase()
+      .replace(/\(\)/g, '')
+      .replace(/\.(js|gs|html)$/g, '')
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  function findMatchingNode(nodes, keywords) {
+    if (!nodes || !nodes.length || !keywords || !keywords.length) return null;
+
+    // Pass 1: Direct case-insensitive substring match across node fields
+    for (var k = 0; k < keywords.length; k++) {
+      var kw = String(keywords[k] || '').toLowerCase().trim();
+      if (!kw) continue;
+      for (var n = 0; n < nodes.length; n++) {
+        var nd = nodes[n];
+        var rawHaystack = [
+          nd.id, nd.name, nd.label, nd.title, nd.ticker,
+          nd.fn, nd.func, nd.file, nd.sector, nd.group, nd.type
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        if (rawHaystack.indexOf(kw) > -1) {
+          return nd;
+        }
+      }
+    }
+
+    // Pass 2: Normalized match (matches e.g. "doGet(e)" to "doget" or "Code.js" to "codejs")
+    for (var k2 = 0; k2 < keywords.length; k2++) {
+      var normKw = normalizeToken(keywords[k2]);
+      if (normKw.length < 3) continue;
+      for (var n2 = 0; n2 < nodes.length; n2++) {
+        var nd2 = nodes[n2];
+        var normHaystack = normalizeToken([
+          nd2.id, nd2.name, nd2.label, nd2.title, nd2.ticker, nd2.fn, nd2.file
+        ].filter(Boolean).join(' '));
+
+        if (normHaystack.indexOf(normKw) > -1) {
+          return nd2;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // 4. Project 3D/2D node coordinates to screen pixels
+  function projectNodeToScreen(graph, node) {
+    if (!graph || !node) return null;
+    var nx = Number(node.x) || 0;
+    var ny = Number(node.y) || 0;
+    var nz = Number(node.z) || 0;
+
+    if (typeof graph.graph2ScreenCoords === 'function') {
+      try {
+        var coords = typeof graph.cameraPosition === 'function'
+          ? graph.graph2ScreenCoords(nx, ny, nz)
+          : graph.graph2ScreenCoords(nx, ny);
+        if (coords && typeof coords.x === 'number' && !isNaN(coords.x)) {
+          return coords;
+        }
+      } catch (e) {}
+    }
+
+    if (typeof graph.camera === 'function' && typeof graph.renderer === 'function' && window.THREE) {
+      try {
+        var cam = graph.camera();
+        var ren = graph.renderer();
+        if (cam && ren && ren.domElement) {
+          var vec = new window.THREE.Vector3(nx, ny, nz);
+          vec.project(cam);
+          var rect = ren.domElement.getBoundingClientRect();
+          return {
+            x: rect.left + (vec.x * 0.5 + 0.5) * rect.width,
+            y: rect.top + (-vec.y * 0.5 + 0.5) * rect.height
+          };
+        }
+      } catch (e) {}
+    }
+
+    return null;
+  }
+
+  // 5. Smooth camera transition onto the target node
+  function moveCameraToNode(graph, node, isFinal) {
+    if (!graph || !node) return;
+
+    // Pause OrbitControls auto-rotation so camera stays locked on the node
+    try {
+      if (typeof graph.controls === 'function' && graph.controls()) {
+        var ctrls = graph.controls();
+        if (savedAutoRotate === null && typeof ctrls.autoRotate === 'boolean') {
+          savedAutoRotate = ctrls.autoRotate;
+        }
+        ctrls.autoRotate = false;
+      }
+    } catch (e) {}
+
+    var nx = Number(node.x) || 0;
+    var ny = Number(node.y) || 0;
+    var nz = Number(node.z) || 0;
+
+    if (typeof graph.cameraPosition === 'function') {
+      var distance = isFinal ? 95 : 120;
+      var mag = Math.hypot(nx, ny, nz);
+      var camPos = mag > 1
+        ? {
+            x: nx * (1 + distance / mag) - 24,
+            y: ny * (1 + distance / mag) + 10,
+            z: nz * (1 + distance / mag)
+          }
+        : {
+            x: nx - 24,
+            y: ny + 16,
+            z: nz + distance
+          };
+
+      graph.cameraPosition(
+        camPos,
+        { x: nx - 16, y: ny, z: nz },
+        900
+      );
+    } else if (typeof graph.centerAt === 'function') {
+      graph.centerAt(nx - 60, ny, 850);
+      if (typeof graph.zoom === 'function') {
+        graph.zoom(isFinal ? 3.4 : 2.6, 850);
+      }
+    }
+  }
+
+  // 6. Illuminate the active node inside the graph
+  function applyNodeHighlight(graph, node, color) {
+    if (!graph || !node) return;
+    var targetId = node.id !== undefined ? node.id : node.name;
+    window.__fridayHighlightedNodeId = targetId;
+
+    if (typeof graph.nodeColor === 'function') {
+      graph.nodeColor(function(nd) {
+        var id = nd.id !== undefined ? nd.id : nd.name;
+        if (id === targetId) return color || '#00f5d4';
+        return typeof baseNodeColor === 'function' ? baseNodeColor(nd) : (nd.color || '#ffb340');
+      });
+    }
+
+    if (typeof graph.nodeVal === 'function') {
+      graph.nodeVal(function(nd) {
+        var id = nd.id !== undefined ? nd.id : nd.name;
+        var base = typeof baseNodeVal === 'function' ? baseNodeVal(nd) : (nd.val || 4);
+        return id === targetId ? Math.max(base * 1.9, 10) : base;
+      });
+    }
+
+    if (typeof graph.refresh === 'function') {
+      graph.refresh();
+    }
+  }
+
+  // 7. 120 FPS GPU reticle sync loop
+  function startReticleSyncLoop() {
+    if (rafId) return;
+    lastTime = performance.now();
+
+    function step(now) {
+      var holoLayer = document.getElementById('friday-holo-layer');
+      if (!holoLayer || holoLayer.style.display === 'none' || !activeNode || !brainGraph) {
+        rafId = null;
+        return;
+      }
+
+      var projected = projectNodeToScreen(brainGraph, activeNode);
+      if (projected) {
+        targetX = Math.max(85, Math.min(window.innerWidth - 85, projected.x));
+        targetY = Math.max(85, Math.min(window.innerHeight - 95, projected.y));
+      }
+
+      var dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      var alpha = 1 - Math.pow(1 - 0.22, dt * 60);
+
+      curX += (targetX - curX) * alpha;
+      curY += (targetY - curY) * alpha;
+
+      var reticle = document.getElementById('friday-holo-reticle');
+      var card = document.getElementById('friday-holo-card');
+      var beam = document.getElementById('friday-holo-beam');
+      var anchor = document.getElementById('friday-holo-anchor');
+
+      if (reticle) {
+        reticle.style.transform = 'translate3d(' + curX.toFixed(1) + 'px, ' + curY.toFixed(1) + 'px, 0)';
+      }
+      if (card && beam && anchor) {
+        var r = card.getBoundingClientRect();
+        var sx = Math.round(r.right);
+        var sy = Math.round(r.top + 48);
+        anchor.setAttribute('cx', sx);
+        anchor.setAttribute('cy', sy);
+        anchor.setAttribute('fill', activeColor);
+        beam.setAttribute('x1', sx);
+        beam.setAttribute('y1', sy);
+        beam.setAttribute('x2', Math.round(curX));
+        beam.setAttribute('y2', Math.round(curY));
+        beam.setAttribute('stroke', activeColor);
+      }
+
+      rafId = requestAnimationFrame(step);
+    }
+
+    rafId = requestAnimationFrame(step);
+  }
+
+  // 8. Listen to F.R.I.D.A.Y.'s diagnosis step events
+  window.addEventListener('friday:brainHighlight', function(e) {
+    var detail = e.detail || {};
+    var keywords = detail.keywords || [];
+    activeColor = detail.color || '#00f5d4';
+
+    var graph = discoverExistingGraph();
+    if (!graph) return;
+
+    var data = graph.graphData();
+    var nodes = (data && data.nodes) || [];
+    var matched = findMatchingNode(nodes, keywords);
+
+    if (matched) {
+      activeNode = matched;
+      var tag = document.getElementById('holo-reticle-tag');
+      if (tag) {
+        tag.textContent = 'NODE: ' + String(matched.name || matched.label || matched.id || keywords[0]).toUpperCase();
+      }
+      applyNodeHighlight(graph, matched, activeColor);
+      moveCameraToNode(graph, matched, !!detail.isFinal);
+      startReticleSyncLoop();
+    }
+  });
+
+  window.addEventListener('friday:clearHighlight', function() {
+    activeNode = null;
+    window.__fridayHighlightedNodeId = null;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    if (brainGraph) {
+      try {
+        if (typeof brainGraph.nodeColor === 'function' && baseNodeColor) {
+          brainGraph.nodeColor(baseNodeColor);
+        }
+        if (typeof brainGraph.nodeVal === 'function' && baseNodeVal) {
+          brainGraph.nodeVal(baseNodeVal);
+        }
+        if (savedAutoRotate !== null && typeof brainGraph.controls === 'function' && brainGraph.controls()) {
+          brainGraph.controls().autoRotate = savedAutoRotate;
+          savedAutoRotate = null;
+        }
+        if (typeof brainGraph.refresh === 'function') {
+          brainGraph.refresh();
+        }
+      } catch (e) {}
+    }
+  });
+})();
+</script>
+<!-- ==================== END BRAIN CAMERA & NODE FOCUS ENGINE ==================== -->

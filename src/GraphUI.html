@@ -1483,7 +1483,54 @@
     }, 15000);
 
     rebuildObsidianScene();
+    // ==================== 120 FPS BRAIN BRIDGE FOR F.R.I.D.A.Y. ====================
+(function() {
+  var _g = (typeof Graph !== 'undefined') ? Graph
+         : ((typeof graph !== 'undefined') ? graph
+         : ((typeof fg !== 'undefined') ? fg : window.Graph));
+
+  if (!_g) return;
+  window.Graph = _g;
+
+  // 1. Optimize WebGL renderer & physics for smooth 120 FPS
+  try {
+    if (typeof _g.renderer === 'function' && _g.renderer()) {
+      _g.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    }
+    if (typeof _g.cooldownTicks === 'function') {
+      _g.cooldownTicks(100); // Settle layout cleanly so GPU stays free at 120 FPS
+    }
+    if (typeof _g.d3AlphaDecay === 'function') {
+      _g.d3AlphaDecay(0.035);
+    }
+  } catch (e) {}
+
+  // 2. Listen for F.R.I.D.A.Y.'s node highlight signal and illuminate the active 3D sphere
+  var baseNodeColor = (typeof _g.nodeColor === 'function') ? _g.nodeColor() : null;
+
+  window.addEventListener('friday:brainHighlight', function(e) {
+    var detail = e.detail || {};
+    if (typeof _g.nodeColor === 'function') {
+      _g.nodeColor(function(node) {
+        var id = node.id || node.name;
+        if (window.__fridayHighlightedNodeId && id === window.__fridayHighlightedNodeId) {
+          return detail.color || '#00f5d4';
+        }
+        return typeof baseNodeColor === 'function' ? baseNodeColor(node) : (node.color || '#ffb340');
+      });
+    }
+  });
+
+  window.addEventListener('friday:clearHighlight', function() {
+    window.__fridayHighlightedNodeId = null;
+    if (typeof _g.nodeColor === 'function' && baseNodeColor) {
+      _g.nodeColor(baseNodeColor);
+    }
+  });
+})();
   </script>
   <?!= include('HelmetBootHUD'); ?>
+  <?!= includeJarvisVoice(); ?>
+  <?!= includeBrainCameraFocus(); ?>
 </body>
 </html>
