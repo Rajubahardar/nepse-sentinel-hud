@@ -1,4 +1,4 @@
-<!-- ==================== IRON MAN HUD VOICE INPUT & KNOWLEDGE GRAPH ROUTER ==================== -->
+<!-- ==================== IRON MAN HUD 3D KNOWLEDGE GRAPH VOICE EXECUTOR ==================== -->
 <style>
   #jarvis-mic-btn {
     border-color: #00f5d4 !important;
@@ -7,124 +7,89 @@
     align-items: center;
     gap: 6px;
   }
-
-  #jarvis-mic-btn.listening {
-    background: rgba(244, 63, 94, 0.25) !important;
+  #jarvis-mic-btn.active {
+    background: rgba(244, 63, 94, 0.28) !important;
     border-color: #f43f5e !important;
     color: #ffe4e6 !important;
-    box-shadow: 0 0 16px rgba(244, 63, 94, 0.55);
-    animation: micPulse 1.1s infinite ease-in-out;
+    box-shadow: 0 0 14px rgba(244, 63, 94, 0.55);
   }
-
-  @keyframes micPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.04); }
-  }
-
-  #jarvis-voice-wave-pill {
-    position: fixed;
-    bottom: 86px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999995;
+  #jarvis-mic-close-btn {
+    border-color: #f43f5e !important;
+    color: #fda4af !important;
+    background: rgba(244, 63, 94, 0.16) !important;
     display: none;
     align-items: center;
-    gap: 12px;
-    padding: 8px 18px;
-    background: rgba(7, 14, 24, 0.92);
-    border: 1px solid rgba(0, 245, 212, 0.65);
-    border-left: 3px solid #ff8c00;
-    border-right: 3px solid #00f5d4;
-    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-    font-family: 'Orbitron', 'Consolas', monospace;
-    font-size: 12px;
-    color: #e0f2fe;
-    box-shadow: 0 0 24px rgba(0, 245, 212, 0.28);
-    pointer-events: none;
-    max-width: 78vw;
+    padding: 6px 10px !important;
   }
-
-  #jarvis-wave-canvas {
-    width: 96px;
-    height: 26px;
-    flex-shrink: 0;
-  }
-
-  #jarvis-heard-text {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    letter-spacing: 0.5px;
+  #jarvis-mic-close-btn:hover {
+    background: #f43f5e !important;
+    color: #ffffff !important;
   }
 </style>
-
-<div id="jarvis-voice-wave-pill">
-  <canvas id="jarvis-wave-canvas" width="96" height="26"></canvas>
-  <span id="jarvis-heard-text">LISTENING FOR COMMAND…</span>
-</div>
 
 <script>
 (function() {
   if (window.__jarvisVoiceCommandRouterInstalled) return;
   window.__jarvisVoiceCommandRouterInstalled = true;
 
-  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var recognition = null;
-  var isListening = false;
-  var waveEnergy = 0.15;
+  var isEmbeddedInShell = (window.parent !== window);
+  var isVoiceOpen = false;
+  var cachedGraph = null;
+  var SHELL_URL = 'https://rajubahardar.github.io/nepse-sentinel-hud/';
 
-  // 1. Live Iron Man HUD Voice Waveform Visualizer (animates for both mic input & F.R.I.D.A.Y. speech)
-  function startHudWaveformLoop() {
-    var canvas = document.getElementById('jarvis-wave-canvas');
-    var pill = document.getElementById('jarvis-voice-wave-pill');
-    if (!canvas || !pill) return;
-    var ctx = canvas.getContext('2d');
-    var phase = 0;
+  // 1. Capture live ForceGraph3D instance from DOM container (__kapsuleInstance) or globals
+  function resolveGraphInstance() {
+    if (cachedGraph && typeof cachedGraph.graphData === 'function') return cachedGraph;
 
-    function drawFrame() {
-      var aiSpeaking = Boolean(window.__fridayIsSpeaking);
-      if (isListening || aiSpeaking) {
-        pill.style.display = 'flex';
-        var targetEnergy = aiSpeaking
-          ? (window.__fridayAudioLevel || 0.65)
-          : (isListening ? 0.55 : 0.1);
-        waveEnergy += (targetEnergy - waveEnergy) * 0.25;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        var bars = 18;
-        var barWidth = 3;
-        var gap = 2.2;
-        var midY = canvas.height / 2;
-
-        for (var i = 0; i < bars; i++) {
-          var distFromCenter = 1 - Math.abs(i - bars / 2) / (bars / 2);
-          var wave = Math.sin(phase + i * 0.55) * 0.5 + 0.5;
-          var h = Math.max(3, distFromCenter * wave * waveEnergy * 22);
-          ctx.fillStyle = isListening ? '#f43f5e' : (i % 2 === 0 ? '#00f5d4' : '#ffb340');
-          ctx.fillRect(i * (barWidth + gap) + 2, midY - h / 2, barWidth, h);
-        }
-        phase += 0.24;
-      } else {
-        pill.style.display = 'none';
+    var globals = [window.Graph, window.graph, window.knowledgeGraph, window.fg, window.graph3d];
+    for (var i = 0; i < globals.length; i++) {
+      if (globals[i] && typeof globals[i].graphData === 'function') {
+        cachedGraph = globals[i];
+        return cachedGraph;
       }
-      requestAnimationFrame(drawFrame);
     }
 
-    requestAnimationFrame(drawFrame);
+    var divs = document.querySelectorAll('div');
+    for (var d = 0; d < divs.length; d++) {
+      var el = divs[d];
+      if (el.__kapsuleInstance && typeof el.__kapsuleInstance.graphData === 'function') {
+        cachedGraph = el.__kapsuleInstance;
+        window.Graph = cachedGraph;
+        return cachedGraph;
+      }
+      var keys = Object.keys(el);
+      for (var k = 0; k < keys.length; k++) {
+        var prop = el[keys[k]];
+        if (prop && typeof prop === 'function' && typeof prop.graphData === 'function' && typeof prop.cameraPosition === 'function') {
+          cachedGraph = prop;
+          window.Graph = cachedGraph;
+          return cachedGraph;
+        }
+      }
+    }
+    return null;
   }
 
-  function showHudTranscript(label, color) {
-    var textEl = document.getElementById('jarvis-heard-text');
-    if (textEl) {
-      textEl.textContent = label;
-      textEl.style.color = color || '#e0f2fe';
+  function postToShell(payload) {
+    if (isEmbeddedInShell) {
+      try { window.parent.postMessage(payload, '*'); } catch (e) {}
     }
   }
+
+  // Notify parent voice shell when F.R.I.D.A.Y. is speaking so her voice never triggers commands
+  var lastSpeaking = false;
+  setInterval(function() {
+    var speaking = Boolean(window.__fridayIsSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking));
+    if (speaking !== lastSpeaking) {
+      lastSpeaking = speaking;
+      postToShell({ type: 'JARVIS_AI_SPEAKING', speaking: speaking });
+    }
+  }, 100);
 
   function speakReply(msg) {
     var subTag = document.getElementById('friday-subtitle-tag');
     var subText = document.getElementById('friday-subtitle-text');
-    if (subTag) subTag.textContent = '[F.R.I.D.A.Y. · VOICE COMMAND]';
+    if (subTag) subTag.textContent = '[F.R.I.D.A.Y. · VOICE]';
     if (subText) subText.textContent = msg;
 
     if ('speechSynthesis' in window) {
@@ -134,9 +99,21 @@
     }
   }
 
-  // 2. Helper: Inspect live 3D Knowledge Graph nodes
+  function updateDockButtons() {
+    var micBtn = document.getElementById('jarvis-mic-btn');
+    var closeBtn = document.getElementById('jarvis-mic-close-btn');
+    if (micBtn) {
+      micBtn.classList.toggle('active', isVoiceOpen);
+      micBtn.innerHTML = isVoiceOpen ? '● VOICE ON' : '🎙️ VOICE';
+    }
+    if (closeBtn) {
+      closeBtn.style.display = isVoiceOpen ? 'inline-flex' : 'none';
+    }
+  }
+
+  // 2. Real 3D Knowledge Graph & HUD Action Helpers
   function getGraphNodes() {
-    var g = window.Graph || window.graph || window.knowledgeGraph;
+    var g = resolveGraphInstance();
     if (!g || typeof g.graphData !== 'function') return [];
     var data = g.graphData();
     return (data && data.nodes) || [];
@@ -145,18 +122,28 @@
   function getStockNodes() {
     return getGraphNodes().filter(function(n) {
       var sig = String(n.signal || '').toUpperCase();
-      var type = String(n.type || n.group || n.category || '').toLowerCase();
-      return sig === 'BUY' || sig === 'WATCH' || sig === 'SELL' || type.indexOf('stock') > -1 || type.indexOf('ticker') > -1;
+      var grp = String(n.group || n.type || n.category || '').toLowerCase();
+      return sig === 'BUY' || sig === 'WATCH' || sig === 'SELL' ||
+             grp.indexOf('stock') > -1 || grp.indexOf('ticker') > -1 ||
+             typeof n.ltp !== 'undefined' || typeof n.target !== 'undefined';
     });
   }
 
-  function clickButtonByText(keywords) {
-    var btns = document.querySelectorAll('button');
-    for (var i = 0; i < btns.length; i++) {
-      var txt = (btns[i].textContent || '').trim().toUpperCase();
+  function triggerRealClick(el) {
+    if (!el) return;
+    ['pointerdown', 'mousedown', 'mouseup', 'click'].forEach(function(evtName) {
+      el.dispatchEvent(new MouseEvent(evtName, { bubbles: true, cancelable: true, view: window }));
+    });
+  }
+
+  function clickButtonMatching(keywords) {
+    var nodes = document.querySelectorAll('button, [role="button"], a');
+    for (var i = 0; i < nodes.length; i++) {
+      var txt = (nodes[i].textContent || '').trim().toUpperCase();
+      if (!txt || nodes[i].id === 'jarvis-mic-btn' || nodes[i].id === 'jarvis-mic-close-btn') continue;
       for (var k = 0; k < keywords.length; k++) {
         if (txt.indexOf(keywords[k]) > -1) {
-          btns[i].click();
+          triggerRealClick(nodes[i]);
           return true;
         }
       }
@@ -164,50 +151,67 @@
     return false;
   }
 
-  function focusNodeInGraph(node, openChart) {
+  function ensureVisorEngaged() {
+    var helmetBtn = document.getElementById('friday-helmet-btn');
+    if (helmetBtn && helmetBtn.textContent.toUpperCase().indexOf('HELMET ON') > -1) {
+      triggerRealClick(helmetBtn);
+      return;
+    }
+    clickButtonMatching(['HELMET ON', 'ENGAGE HELMET', 'ENGAGE VISOR']);
+  }
+
+  function focusAndActivateNode(node, openChart) {
     if (!node) return;
+    var g = resolveGraphInstance();
     var ticker = String(node.ticker || node.name || node.label || node.id || '').toUpperCase();
 
-    // 1. Lock 120 FPS camera & reticle onto the node
+    // Highlight node reticle
     window.dispatchEvent(new CustomEvent('friday:brainHighlight', {
-      detail: {
-        keywords: [ticker, node.id, node.name],
-        color: '#00f5d4',
-        isFinal: true
-      }
+      detail: { keywords: [ticker, node.id, node.name], color: '#00f5d4', isFinal: true }
     }));
 
-    // 2. Trigger the graph's native node click handler if available (opens live NepseAlpha chart)
-    var g = window.Graph || window.graph || window.knowledgeGraph;
-    if (openChart) {
-      // Ensure visor is engaged so embedded chart is visible
-      var helmetBtn = document.getElementById('friday-helmet-btn');
-      if (helmetBtn && helmetBtn.textContent.toUpperCase().indexOf('HELMET ON') > -1) {
-        helmetBtn.click();
-      }
-      clickButtonByText(['SPLIT', 'LIVE']);
+    // Fly 3D camera onto node coordinates
+    if (g && typeof g.cameraPosition === 'function' && typeof node.x === 'number') {
+      var dist = 88;
+      var hypot = Math.hypot(node.x, node.y, node.z) || 1;
+      var ratio = 1 + dist / hypot;
+      g.cameraPosition(
+        { x: node.x * ratio, y: node.y * ratio, z: node.z * ratio },
+        { x: node.x, y: node.y, z: node.z },
+        750
+      );
+    }
 
-      if (g && typeof g.onNodeClick === 'function') {
-        var handler = g.onNodeClick();
-        if (typeof handler === 'function') {
+    // Fire ForceGraph3D's native onNodeClick handler
+    if (g && typeof g.onNodeClick === 'function') {
+      var handler = g.onNodeClick();
+      if (typeof handler === 'function') {
+        try {
+          handler(node, new MouseEvent('click', { bubbles: true }));
+        } catch (e) {
           handler(node);
         }
       }
     }
+
+    if (openChart) {
+      ensureVisorEngaged();
+      setTimeout(function() {
+        clickButtonMatching(['SPLIT', 'LIVE CHART', 'CHART']);
+      }, 150);
+    }
   }
 
-  // 3. Natural Language Voice Command Router
-  function executeVoiceCommand(rawTranscript) {
-    var cmd = String(rawTranscript || '').trim();
+  // 3. Execute Spoken Task Immediately
+  function executeVoiceCommand(rawText) {
+    var cmd = String(rawText || '').trim();
     var lower = cmd.toLowerCase();
     if (!lower) return;
-
-    showHudTranscript('EXECUTING: "' + cmd.toUpperCase() + '"', '#00f5d4');
 
     var stocks = getStockNodes();
     var allNodes = getGraphNodes();
 
-    // Check if user mentioned a specific ticker symbol (e.g., "open chart for NABIL")
+    // Match any spoken stock ticker
     var mentionedStock = null;
     for (var i = 0; i < stocks.length; i++) {
       var sym = String(stocks[i].ticker || stocks[i].name || stocks[i].id || '').toLowerCase().trim();
@@ -217,255 +221,190 @@
       }
     }
 
-    // COMMAND A: "Open chart" / "Show chart" / "Chart dikhao"
-    if (/\b(chart|graph|candle|nepsealpha|tradingview|चार्ट)\b/.test(lower)) {
-      var targetStock = mentionedStock ||
+    // TASK 1: Open Chart
+    if (/\b(chart|graph|candle|nepsealpha|tradingview)\b/.test(lower)) {
+      var target = mentionedStock ||
         stocks.find(function(s) { return String(s.signal || '').toUpperCase() === 'BUY'; }) ||
         stocks[0];
 
-      if (targetStock) {
-        var symName = String(targetStock.ticker || targetStock.name || targetStock.id).toUpperCase();
-        focusNodeInGraph(targetStock, true);
+      ensureVisorEngaged();
+      clickButtonMatching(['SPLIT', 'LIVE']);
+
+      if (target) {
+        var symName = String(target.ticker || target.name || target.id).toUpperCase();
+        focusAndActivateNode(target, true);
         speakReply('Opening live chart for ' + symName + ', Raju D. sir.');
       } else {
-        clickButtonByText(['HELMET ON', 'LIVE', 'SPLIT']);
         speakReply('Engaging visor chart view, Raju D. sir.');
       }
       return;
     }
 
-    // COMMAND B: "Show me backtesting" / "Backtest" / "Accuracy" / "Run diagnosis"
-    if (/\b(backtest|backtesting|accuracy|pga|cascade|diagnosis|diagnose|बैकटेस्ट)\b/.test(lower)) {
-      // Engage visor to show backtest panel & switch mode if requested
-      var helmetBtn = document.getElementById('friday-helmet-btn');
-      if (helmetBtn && helmetBtn.textContent.toUpperCase().indexOf('HELMET ON') > -1) {
-        helmetBtn.click();
-      }
-      if (lower.indexOf('cascade') > -1) {
-        clickButtonByText(['CASCADE']);
-      } else if (lower.indexOf('pga') > -1) {
-        clickButtonByText(['PGA-BB']);
-      } else {
-        clickButtonByText(['COMBINED']);
-      }
+    // TASK 2: Show Backtesting
+    if (/\b(backtest|backtesting|accuracy|pga|cascade)\b/.test(lower)) {
+      ensureVisorEngaged();
+      if (lower.indexOf('cascade') > -1) clickButtonMatching(['CASCADE']);
+      else if (lower.indexOf('pga') > -1) clickButtonMatching(['PGA-BB', 'PGA']);
+      else clickButtonMatching(['COMBINED', 'BACKTEST']);
 
-      if (lower.indexOf('diagnosis') > -1 || lower.indexOf('brain') > -1) {
-        var diagBtn = document.getElementById('friday-diag-btn');
-        if (diagBtn) diagBtn.click();
-        return;
-      }
+      var btPanel = document.getElementById('backtest-panel') || document.querySelector('[class*="backtest"]');
+      if (btPanel) btPanel.style.display = 'block';
 
-      speakReply('Displaying multi-gate backtesting performance and historical buy-sell signals on your visor, Raju D. sir.');
+      speakReply('Displaying backtesting results on your visor, Raju D. sir.');
       return;
     }
 
-    // COMMAND C: "Show me top leads today" / "Top leads" / "Best stocks" / "Buy signals"
-    if (/\b(top lead|top leads|leads|top stock|best stock|buy signal|today|लीड्स|टॉप)\b/.test(lower)) {
-      var buys = stocks.filter(function(s) {
-        return String(s.signal || '').toUpperCase() === 'BUY';
-      });
+    // TASK 3: Show Top Leads Today
+    if (/\b(top lead|top leads|leads|top stock|best stock|buy signal|today)\b/.test(lower)) {
+      var buys = stocks.filter(function(s) { return String(s.signal || '').toUpperCase() === 'BUY'; });
       var ranked = (buys.length > 0 ? buys : stocks).slice().sort(function(a, b) {
         return (Number(b.rr_ratio || b.rr || 0)) - (Number(a.rr_ratio || a.rr || 0));
       });
 
       if (ranked.length > 0) {
         var top3 = ranked.slice(0, 3);
-        var leadNames = top3.map(function(s) {
-          return String(s.ticker || s.name || s.id).toUpperCase();
-        });
-        focusNodeInGraph(top3[0], false);
+        var names = top3.map(function(s) { return String(s.ticker || s.name || s.id).toUpperCase(); });
+        focusAndActivateNode(top3[0], false);
         speakReply(
-          'Your top leads today, Raju D. sir, are ' + leadNames.join(', ') +
-          '. Locking onto ' + leadNames[0] + ' at ' + (top3[0].ltp || 'current') +
-          ' rupees with target ' + (top3[0].target || 'set') + '.'
+          'Your top leads today, Raju D. sir, are ' + names.join(', ') +
+          '. Locking onto ' + names[0] + ' at ' + (top3[0].ltp || 'current') + ' rupees.'
         );
       } else {
         var briefBtn = document.getElementById('friday-briefing-btn');
-        if (briefBtn) briefBtn.click();
+        if (briefBtn) triggerRealClick(briefBtn);
       }
       return;
     }
 
-    // COMMAND D: "Brain view" / "Disengage helmet" / "Show functions"
-    if (/\b(brain|disengage|helmet off|function|code|trace)\b/.test(lower)) {
-      var diagBtn2 = document.getElementById('friday-diag-btn');
-      if (diagBtn2) diagBtn2.click();
+    // TASK 4: Brain View / Diagnosis
+    if (/\b(brain|disengage|helmet off|diagnosis|diagnose|function|code)\b/.test(lower)) {
+      var diagBtn = document.getElementById('friday-diag-btn');
+      if (diagBtn) triggerRealClick(diagBtn);
+      else clickButtonMatching(['DISENGAGE', 'DIAGNOSIS', 'BRAIN']);
       return;
     }
 
-    // COMMAND E: "Engage helmet" / "Helmet on" / "Visor on"
-    if (/\b(helmet on|engage|visor on|visor)\b/.test(lower)) {
-      clickButtonByText(['HELMET ON']);
-      speakReply('Mark Seven visor engaged, Raju D. sir.');
+    // TASK 5: Engage Visor
+    if (/\b(helmet on|engage|visor)\b/.test(lower)) {
+      ensureVisorEngaged();
+      speakReply('Visor engaged, Raju D. sir.');
       return;
     }
 
-    // COMMAND F: "Zoom in" / "Zoom out" / "Reset"
-    var g = window.Graph || window.graph || window.knowledgeGraph;
+    // TASK 6: Zoom In / Out / Reset
+    var g = resolveGraphInstance();
     if (g && typeof g.cameraPosition === 'function') {
       if (/\b(zoom in|closer)\b/.test(lower)) {
-        var posIn = g.cameraPosition();
-        g.cameraPosition({ x: posIn.x * 0.68, y: posIn.y * 0.68, z: posIn.z * 0.68 }, null, 700);
-        speakReply('Zooming in on the neural grid, Raju D. sir.');
+        var p = g.cameraPosition();
+        g.cameraPosition({ x: p.x * 0.65, y: p.y * 0.65, z: p.z * 0.65 }, null, 650);
+        speakReply('Zooming in on the knowledge graph, Raju D. sir.');
         return;
       }
       if (/\b(zoom out|reset|overview)\b/.test(lower)) {
-        g.cameraPosition({ x: 0, y: 0, z: 320 }, { x: 0, y: 0, z: 0 }, 800);
+        if (typeof g.zoomToFit === 'function') g.zoomToFit(700, 40);
+        else g.cameraPosition({ x: 0, y: 0, z: 320 }, { x: 0, y: 0, z: 0 }, 700);
         window.dispatchEvent(new Event('friday:clearHighlight'));
-        speakReply('Resetting 3D Knowledge Graph perspective, Raju D. sir.');
+        speakReply('Resetting 3D graph view, Raju D. sir.');
         return;
       }
     }
 
-    // COMMAND G: "Briefing" / "Report"
-    if (/\b(briefing|report|summary|update)\b/.test(lower)) {
+    // TASK 7: Briefing / Silence
+    if (/\b(briefing|report|summary)\b/.test(lower)) {
       var bBtn = document.getElementById('friday-briefing-btn');
-      if (bBtn) bBtn.click();
+      if (bBtn) triggerRealClick(bBtn);
       return;
     }
-
-    // COMMAND H: "Stop" / "Silence" / "Quiet"
-    if (/\b(stop|silence|quiet|shut up|cancel)\b/.test(lower)) {
+    if (/\b(stop|silence|quiet)\b/.test(lower)) {
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       return;
     }
 
-    // COMMAND I: Any named node in the graph (ticker, sector, or function)
+    // TASK 8: Any Named Stock or Graph Node
     if (mentionedStock) {
       var mSym = String(mentionedStock.ticker || mentionedStock.name || mentionedStock.id).toUpperCase();
-      focusNodeInGraph(mentionedStock, true);
+      focusAndActivateNode(mentionedStock, true);
       speakReply('Locking onto ' + mSym + ', Raju D. sir.');
       return;
     }
 
     for (var n = 0; n < allNodes.length; n++) {
-      var nLabel = String(allNodes[n].name || allNodes[n].label || allNodes[n].id || '').toLowerCase();
-      if (nLabel.length >= 3 && lower.indexOf(nLabel) > -1) {
-        focusNodeInGraph(allNodes[n], false);
-        speakReply('Focusing on node ' + String(allNodes[n].name || allNodes[n].id) + ', Raju D. sir.');
+      var label = String(allNodes[n].name || allNodes[n].label || allNodes[n].id || '').toLowerCase();
+      if (label.length >= 3 && lower.indexOf(label) > -1) {
+        focusAndActivateNode(allNodes[n], false);
+        speakReply('Focusing on ' + String(allNodes[n].name || allNodes[n].id) + ', Raju D. sir.');
         return;
       }
     }
-
-    speakReply('I heard "' + cmd + '", Raju D. sir. You can ask me to open a chart, show backtesting, or show top leads today.');
   }
 
-  // 4. Microphone Capture Controller (Click button or hold/press V key)
-  function toggleMicrophone() {
-    if (!SpeechRec) {
-      speakReply('Speech recognition is not supported in this browser window, Raju D. sir. Please use Microsoft Edge or Google Chrome.');
-      return;
+  // 4. Listen for Commands from Top-Level GitHub Pages Voice Shell
+  window.addEventListener('message', function(event) {
+    var data = event.data || {};
+    if (data.type === 'JARVIS_VOICE_OPENED') {
+      isVoiceOpen = true;
+      updateDockButtons();
+      speakReply('Voice command open, Raju D. sir.');
+    } else if (data.type === 'JARVIS_VOICE_CLOSED') {
+      isVoiceOpen = false;
+      updateDockButtons();
+      speakReply('Voice command closed, Raju D. sir.');
+    } else if (data.type === 'JARVIS_VOICE_CMD' && data.transcript) {
+      executeVoiceCommand(data.transcript);
     }
+  });
 
-    if (isListening && recognition) {
-      try { recognition.stop(); } catch (e) {}
-      return;
-    }
-
-    // Stop AI speech immediately so mic only hears your voice
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    recognition = new SpeechRec();
-    recognition.lang = 'en-IN';
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-    recognition.continuous = false;
-
-    var finalTranscript = '';
-
-    recognition.onstart = function() {
-      isListening = true;
-      var btn = document.getElementById('jarvis-mic-btn');
-      if (btn) {
-        btn.classList.add('listening');
-        btn.innerHTML = '● LISTENING…';
-      }
-      showHudTranscript('SPEAK COMMAND (e.g., "OPEN CHART", "SHOW BACKTESTING", "TOP LEADS TODAY")…', '#f9a8d4');
-    };
-
-    recognition.onresult = function(event) {
-      var interim = '';
-      for (var i = event.resultIndex; i < event.results.length; i++) {
-        var transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interim += transcript;
-        }
-      }
-      showHudTranscript('HEARD: "' + (finalTranscript || interim).toUpperCase() + '"', '#ffffff');
-    };
-
-    recognition.onerror = function(event) {
-      isListening = false;
-      var btn = document.getElementById('jarvis-mic-btn');
-      if (btn) {
-        btn.classList.remove('listening');
-        btn.innerHTML = '🎙️ COMMAND';
-      }
-      if (event.error === 'not-allowed') {
-        speakReply('Microphone access was blocked by the browser, Raju D. sir. Please allow microphone permission in the address bar.');
-      }
-    };
-
-    recognition.onend = function() {
-      isListening = false;
-      var btn = document.getElementById('jarvis-mic-btn');
-      if (btn) {
-        btn.classList.remove('listening');
-        btn.innerHTML = '🎙️ COMMAND';
-      }
-      if (finalTranscript.trim()) {
-        executeVoiceCommand(finalTranscript.trim());
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch (e) {}
-  }
-
-  // Mount Mic button into HUD dock & bind 'V' keyboard shortcut
-  function mountMicButton() {
+  function mountDockButtons() {
     var dock = document.getElementById('friday-voice-dock');
     if (!dock || document.getElementById('jarvis-mic-btn')) return;
+
+    var closeBtn = document.createElement('button');
+    closeBtn.id = 'jarvis-mic-close-btn';
+    closeBtn.className = 'fv-btn';
+    closeBtn.type = 'button';
+    closeBtn.title = 'Close Voice Command';
+    closeBtn.innerHTML = '✕ CLOSE VOICE';
+    closeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (isEmbeddedInShell) {
+        postToShell({ type: 'JARVIS_SHELL_SET_VOICE', open: false });
+      }
+      isVoiceOpen = false;
+      updateDockButtons();
+      speakReply('Voice command closed, Raju D. sir.');
+    });
 
     var micBtn = document.createElement('button');
     micBtn.id = 'jarvis-mic-btn';
     micBtn.className = 'fv-btn';
     micBtn.type = 'button';
-    micBtn.title = 'Voice Command Input (Shortcut: V) — Try "Open chart", "Show backtesting", or "Show top leads today"';
-    micBtn.innerHTML = '🎙️ COMMAND';
-
+    micBtn.title = isEmbeddedInShell ? 'Open / Close Voice Command' : 'Launch Top-Level Voice HUD Shell';
+    micBtn.innerHTML = '🎙️ VOICE';
     micBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      toggleMicrophone();
+      if (!isEmbeddedInShell) {
+        window.open(SHELL_URL, '_blank');
+        return;
+      }
+      isVoiceOpen = !isVoiceOpen;
+      postToShell({ type: 'JARVIS_SHELL_SET_VOICE', open: isVoiceOpen });
+      updateDockButtons();
+      speakReply(isVoiceOpen ? 'Voice command open, Raju D. sir.' : 'Voice command closed, Raju D. sir.');
     });
 
+    dock.insertBefore(closeBtn, dock.firstChild);
     dock.insertBefore(micBtn, dock.firstChild);
-    startHudWaveformLoop();
   }
 
-  document.addEventListener('keydown', function(e) {
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-    if (e.key === 'v' || e.key === 'V') {
-      e.preventDefault();
-      toggleMicrophone();
-    }
-  });
-
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mountMicButton);
+    document.addEventListener('DOMContentLoaded', mountDockButtons);
   } else {
-    mountMicButton();
+    mountDockButtons();
   }
 
   window.JarvisVoiceCommand = {
-    listen: toggleMicrophone,
     run: executeVoiceCommand
   };
 })();
 </script>
-<!-- ==================== END IRON MAN HUD VOICE INPUT & KNOWLEDGE GRAPH ROUTER ==================== -->
+<!-- ==================== END IRON MAN HUD 3D KNOWLEDGE GRAPH VOICE EXECUTOR ==================== -->

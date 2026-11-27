@@ -1,6 +1,6 @@
 /**
- * NEPSE Sentinel Cloud — Core Backend, WACC Engine, L2 Guards, Telegram & Live Telemetry
- * Paired with: Graph.gs + GraphUI.html (Dual-Brain 3D Telemetry HUD)
+- NEPSE Sentinel Cloud — Core Backend, WACC Engine, L2 Guards, Telegram & Live Telemetry
+- Paired with: Graph.gs + GraphUI.html + VoiceCommandRouter.html (Dual-Brain 3D Telemetry HUD)
  */
 
 const PROPS = PropertiesService.getScriptProperties();
@@ -463,4 +463,65 @@ function debugTelegramBot() {
 
   sendTelegram(chatId, 'Diagnostic check: Dual-Brain Telemetry & Bot connection online!', false, 'debugTelegramBot');
   logTelemetry('debugTelegramBot', 'SYS_INIT', 'OK', 'Ran end-to-end bot diagnostic');
+}
+
+// ==========================================
+// 7. VOICE HUD TELEMETRY & LIVE QUERY BRIDGE
+// ==========================================
+function logVoiceCommandTelemetry(commandText, actionTaken, targetTicker) {
+  logTelemetry(
+    'voiceCommandRouter',
+    'JARVIS_VOICE_HUD',
+    'OK',
+    `${actionTaken || 'EXEC'}: ${String(commandText || '').trim()}`,
+    targetTicker || ''
+  );
+  return true;
+}
+
+function getVoiceHudTopLeads() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('setup_matrix');
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const leads = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = Object.fromEntries(headers.map((h, idx) => [h, data[i][idx]]));
+    const sig = String(row.signal || '').toUpperCase();
+    if (sig === 'SCAN') continue;
+
+    const guard = runL2Guards(row);
+    const ltp = Number(row.ltp || 0);
+    const sl = Number(row.stop_loss || 0);
+    const tgt = Number(row.target || 0);
+    const risk = Math.abs(ltp - sl);
+    const reward = Math.abs(tgt - ltp);
+    const rr = risk > 0 ? Number((reward / risk).toFixed(2)) : 0;
+
+    leads.push({
+      ticker: String(row.ticker || '').toUpperCase(),
+      sector: row.sector || '',
+      signal: sig,
+      ltp: ltp,
+      stop_loss: sl,
+      target: tgt,
+      kelly_pct: Number(row.kelly_pct || 0),
+      rr_ratio: rr,
+      l2_passed: guard.passed,
+      macro_approved: Number(row.macro_approved || 0) === 1
+    });
+  }
+
+  leads.sort((a, b) => {
+    const aBuy = a.signal === 'BUY' && a.l2_passed ? 1 : 0;
+    const bBuy = b.signal === 'BUY' && b.l2_passed ? 1 : 0;
+    if (bBuy !== aBuy) return bBuy - aBuy;
+    return b.rr_ratio - a.rr_ratio;
+  });
+
+  logTelemetry('getVoiceHudTopLeads', 'JARVIS_VOICE_HUD', 'OK', `Returned ${leads.length} ranked setups`);
+  return leads;
 }
